@@ -1,2 +1,38 @@
 # zegami-python-sdk
 An SDK and general wrapper for the lower level Zegami API for Python. This package provides higher level collection interaction and data retrieval.
+
+# Getting started
+Grab this repo, open the script, and load an instance of ZegamiClient into a variable.
+
+```
+from zegami_client import ZegamiClient
+
+zc = ZegamiClient(username, login)
+```
+
+## Credentials
+The client operates using a user token. By default, logging in once with a valid username/password will save the acquired token to your home directory as
+`zegami.token`. The next time you need to use ZegamiClient, you may call `zc = ZegamiClient()` with no arguments, and it will look for this stored token.
+
+## Example Usage
+### Get the metadata and images associated with every dog of the 'beagle' class in a collection of dogs:
+```
+zc = ZegamiClient()
+
+# By default, the client will look for collections in your default workspace. You can manually provide another workspace ID to look there instead.
+
+# Grab the collection (a dictionary of information)
+dogs_collection = zc.get_collection_by_name('My dogs collection')
+
+# Get a pandas.DataFrame of the data in the collection, filtering to only items whose 'Breed' column == 'beagle'
+beagles = zc.get_rows_by_filter(dogs_collection, { 'Breed' : 'beagle' })
+
+# Get the image URLs associated with these rows
+beagles_urls = zc.get_image_urls(dogs_collection, beagles)
+
+# Download those images (into memory)
+beagles_imgs = zc.download_image_batch(beagles_urls)
+```
+
+# In Development
+This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported yet - check back later!
