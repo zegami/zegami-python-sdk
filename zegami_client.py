@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 10 13:36:45 2020
-
-@author: dougl
-"""
 
 import os
 from pathlib import Path
