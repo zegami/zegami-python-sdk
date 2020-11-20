@@ -19,12 +19,14 @@ The client operates using a user token. By default, logging in once with a valid
 ```
 zc = ZegamiClient()
 
-# By default, the client will look for collections in your default workspace. You can manually provide another workspace ID to look there instead.
+# By default, the client will look for collections in your default workspace.
+# You can manually provide another workspace ID to look there instead.
 
 # Grab the collection (a dictionary of information)
 dogs_collection = zc.get_collection_by_name('My dogs collection')
 
-# Get a pandas.DataFrame of the data in the collection, filtering to only items whose 'Breed' column == 'beagle'
+# Get a pandas.DataFrame of the data in the collection, filtering to only
+# items whose 'Breed' column == 'beagle'
 beagles = zc.get_rows_by_filter(dogs_collection, { 'Breed' : 'beagle' })
 
 # Get the image URLs associated with these rows
