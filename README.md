@@ -15,7 +15,7 @@ The client operates using a user token. By default, logging in once with a valid
 `zegami.token`. The next time you need to use ZegamiClient, you may call `zc = ZegamiClient()` with no arguments, and it will look for this stored token.
 
 ## Example Usage
-### Get the metadata and images associated with every dog of the 'beagle' class in a collection of dogs:
+### Get the metadata and images associated with every dog of the 'beagle' breed in a collection of dogs:
 ```
 zc = ZegamiClient()
 
