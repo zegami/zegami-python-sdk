@@ -277,7 +277,7 @@ class ZegamiClient():
         return None
     
     
-    def get_rows(self, collection):
+    def get_rows(self, collection, separator='\t'):
         '''
         Gets the rows in a collection as a Dataframe.
         '''
@@ -292,7 +292,7 @@ class ZegamiClient():
         tsv_bytes = BytesIO(rows_bytes)
         
         try:
-            df = pd.read_csv(tsv_bytes, sep='\t')
+            df = pd.read_csv(tsv_bytes, sep=separator)
         except:
             try:
                 df = pd.read_excel(tsv_bytes)
