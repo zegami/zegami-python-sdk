@@ -6,7 +6,7 @@ from io import BytesIO
 import pandas as pd
 import requests
 from PIL import Image
-import concurrent
+import concurrent.futures
 import time
 
 
