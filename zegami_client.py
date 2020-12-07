@@ -277,7 +277,7 @@ class ZegamiClient():
         return None
     
     
-    def get_rows(self, collection, separator='\t'):
+    def get_rows(self, collection):
         '''
         Gets the rows in a collection as a Dataframe.
         '''
@@ -285,14 +285,17 @@ class ZegamiClient():
         # Get the workspace ID
         workspace_id = self._get_workspace_id(collection)
         
-        url = '{}/{}/project/{}/datasets/{}/file'.format(
-            self.HOME, self.API_0, workspace_id, collection['dataset_id'])
         
+        # fetch the output dataset blob (always a tsv).
+        # Some older collections only have a dataset, which may be tsv, or user-supplied xlsx/csv
+        ds_id = collection.get('output_dataset_id', collection.get('dataset_id'))
+        url = '{}/{}/project/{}/datasets/{}/file'.format(self.HOME, self.API_0, workspace_id, ds_id)
+
         rows_bytes = self._auth_get(url, return_response=True).content
         tsv_bytes = BytesIO(rows_bytes)
         
         try:
-            df = pd.read_csv(tsv_bytes, sep=separator)
+            df = pd.read_csv(tsv_bytes)
         except:
             try:
                 df = pd.read_excel(tsv_bytes)
