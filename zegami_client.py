@@ -312,7 +312,7 @@ class ZegamiClient():
         return None
     
     
-    def get_rows(self, collection, separator='\t'):
+    def get_rows(self, collection):
         '''
         Gets the rows in a collection as a Dataframe.
         '''
@@ -323,11 +323,16 @@ class ZegamiClient():
         url = '{}/{}/project/{}/datasets/{}/file'.format(
             self.HOME, self.API_0, workspace_id, self._extract_dataset_id(collection))
         
+        # fetch the output dataset blob (always a tsv).
+        # Some older collections only have a dataset, which may be tsv, or user-supplied xlsx/csv
+        ds_id = collection.get('output_dataset_id', collection.get('dataset_id'))
+        url = '{}/{}/project/{}/datasets/{}/file'.format(self.HOME, self.API_0, workspace_id, ds_id)
+
         rows_bytes = self._auth_get(url, return_response=True).content
         tsv_bytes = BytesIO(rows_bytes)
         
         try:
-            df = pd.read_csv(tsv_bytes, sep=separator)
+            df = pd.read_csv(tsv_bytes)
         except:
             try:
                 df = pd.read_excel(tsv_bytes)
@@ -489,13 +494,178 @@ class ZegamiClient():
             ordered.append(images[i])
                 
         return ordered
+    
+   
+    def create_collection(self, images, data, image_column, name, description='', workspace_id=None, fail_on_missing_files=True):
+        '''
+        Creates a Zegami collection under the specified workspace (or your
+        default workspace if not specified).
         
+            images          - A list of filepaths of images or directories containing images.
+                              Each of these will be recursively scanned for valid images (jpg,
+                              jpeg, png, bmp, dcm).
+                                                
+            data            - Filepath to the data that goes with the images. Will also accept
+                              a pandas DataFrame.
+                              
+            image_column    - The name of the column in the data containing the filenames to
+                              the row's associated image. Typically 'Filename', 'Image', etc.
+                              
+            name            - The name of the collection.
+            
+            description     - A description of the collection.
+        '''
         
+        """
+        # == Parse the inputs ==
         
+        # Images
+        img_fps = []
         
+        # Image file-type checker
+        def _is_img(fp):
+            return os.path.exists(fp) and\
+                fp.lower().rsplit('.', 1)[-1]\
+                in ['jpg', 'jpeg', 'png', 'bmp', 'dcm']
         
+        # Cast 'images' to a list
+        if type(images) != list:
+            images = [images]
         
+        # Check every entry in the provided images, build the img_fps list
+        for entry in images:
+            
+            # Check it exists
+            if not os.path.exists(entry):
+                print('Warning - \'images\' filepath \'{}\' was not found!'\
+                      .format(entry))
+                    
+                if fail_on_missing_files:
+                    raise Exception('Missed file \'{}\''.format(entry))
+                    
+            # If its a directory, recursively scan it for images
+            if os.path.isdir(entry):
+                img_fps += [fp for fp in Path(entry).rglob('*.*') if _is_img(fp)]
+                
+            elif _is_img(entry):
+                img_fps.append(entry)
+                
+            else:
+                print('Warning - \'images\' entry \'{}\' was invalid!'\
+                      .format(entry))
+                    
+                if fail_on_missing_files:
+                    raise Exception('Missed file \'{}\''.format(entry))
+            
+        # Data
+        if type(data) != pd.DataFrame:
+            
+            assert type(data) == str, 'Expected \'data\' argument to be a '\
+                'path to a file or pd.DataFrame, not a {}'.format(type(data))
+            
+            assert os.path.exists(data), '\'data\' arg \'{}\' was not a '\
+                'valid filepath.'.format(data)
+            
+            try:
+                ext = data.rsplit('.', 1)[-1].lower()
+                if ext in ['csv', 'tsv']:
+                    data = pd.read_csv(data)
+                elif ext in ['xlsx']:
+                    data = pd.read_excel(data)
+                else:
+                    raise ValueError('Unsure how to read \'{}\', expected a '\
+                                     'tsv, csv or xlsx.'.format(data))
+                        
+            except Exception as e:
+                raise Exception('Failed to load data: \'{}\''.format(e))
+                    
+        # Config
+        assert type(name) == str,\
+            'Expected \'name\' argument to be a str, not a {}'.format(type(name))
+            
+        assert type(description) == 'str',\
+            'Expected \'description\' argument to be a str, not a {}'.format(type(description))
+            
+        assert type(image_column) == 'str',\
+            'Expected \'image_column\' argument to be a str, not a {}'.format(type(image_column))
+            
         
+        # Get the start time of this operation
+        t0 = time.time()
         
+        # Ensure a workspace ID (possibly default)
+        workspace_id = workspace_id or self.user_info['tenant_id']
+        
+        # Generate the collection creation URL
+        url = '{}/{}/project/{}/collections/'\
+            .format(self.HOME, self.API_0, workspace_id)
+            
+        # Generate the config that describes the collection
+        config = {
+            'name'          : name,
+            'description'   : description,
+            'dataset_column': image_column,
+            'dataset_type'  : 'file',
+            'imageset_type' : 'file',
+            'file_config'   : {
+                'path' : ''
+            }
+        }
+        """
+        
+        # Unfinished
+        raise NotImplementedError('Not implemented yet, please check back soon!')
+            
+         
+"""
+def create(log, session, args):
+    time_start = datetime.now()
+    url = "{}collections/".format(
+        http.get_api_url(args.url, args.project),)
+    log.debug('POST: {}'.format(url))
+
+    # parse config
+    configuration = config.parse_args(args, log)
+    if "name" not in configuration:
+        log.error('Collection name missing from config file')
+        sys.exit(1)
+
+    # use name from config
+    coll = {
+        "name": configuration["name"],
+    }
+    # use description from config
+    for key in ["description"]:
+        if key in configuration:
+            coll[key] = configuration[key]
+
+    # replace empty description with an empty string
+    if 'description' in coll and coll["description"] is None:
+        coll["description"] = ''
+
+    # create the collection
+    response_json = http.post_json(session, url, coll)
+    log.print_json(response_json, "collection", "post", shorten=False)
+    coll = response_json["collection"]
+
+    dataset_config = dict(
+        configuration, id=coll["upload_dataset_id"]
+    )
+    if 'file_config' in dataset_config:
+        if 'path' in dataset_config['file_config'] or 'directory' in dataset_config['file_config']:
+            datasets.update_from_dict(log, session, dataset_config)
+
+    imageset_config = dict(
+        configuration, id=coll["imageset_id"]
+    )
+    imageset_config["dataset_id"] = coll["dataset_id"]
+    imageset_config["collection_id"] = coll["id"]
+    imagesets.update_from_dict(log, session, imageset_config)
+    delta_time = datetime.now() - time_start
+    log.debug("Collection uploaded in {}".format(delta_time))
+
+    return coll
+        
+"""
         
         
