@@ -120,15 +120,51 @@ class ZegamiClient():
     
     
     @staticmethod
-    def _get_workspace_id(collection):
-        s = collection['collectionThumbnailUrl']
+    def _extract_workspace_id(collection):
+        
+        assert type(collection) == dict,\
+            'Expected collection to be a dict, not {}'.format(type(collection))
+            
+        key = 'collectionThumbnailUrl'
+        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
+            'dict: {}'.format(key, collection)
+        
+        s = collection[key]
         return s.split('/', 4)[-1].split('/', 1)[0]
+    
+    
+    @staticmethod
+    def _extract_imageset_id(collection):
+        
+        assert type(collection) == dict,\
+            'Expected collection to be a dict, not {}'.format(type(collection))
+            
+        key = 'imageset_id'
+        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
+            'dict: {}'.format(key, collection)
+            
+        s = collection[key]
+        return s
+    
+    
+    @staticmethod
+    def _extract_dataset_id(collection):
+        
+        assert type(collection) == dict,\
+            'Expected collection to be a dict, not {}'.format(type(collection))
+            
+        key = 'dataset_id'
+        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
+            'dict: {}'.format(key, collection)
+            
+        s = collection[key]
+        return s
         
         
     async def _auth_get_async(self, session, url, allow_bad=False):
         '''
         (async) Makes a GET request and returns the result promise.
-        NOTE - This isn't being used, Python async is too unreliable
+        NOTE - This isn't being used, Python async is too unreliable.
         '''
         
         async with session.get(url) as r:
@@ -175,12 +211,11 @@ class ZegamiClient():
         Gets a collection's imageset.
         '''
         
-        workspace_id = self._get_workspace_id(collection)
-        
-        id = collection['imageset_id']
+        workspace_id = self._extract_workspace_id(collection)
+        imageset_id = self._extract_imageset_id(collection)
         
         url = '{}/{}/project/{}/imagesets/{}'.format(
-            self.HOME, self.API_0, workspace_id, id)
+            self.HOME, self.API_0, workspace_id, imageset_id)
         
         return self._auth_get(url)['imageset']
     
@@ -192,7 +227,7 @@ class ZegamiClient():
         '''
         
         # Get the workspace ID
-        workspace_id = self._get_workspace_id(collection)
+        workspace_id = self._extract_workspace_id(collection)
         
         # Get the join ID
         imageset_dataset_join_id = collection['imageset_dataset_join_id']
@@ -213,7 +248,7 @@ class ZegamiClient():
         '''
         
         # Get the workspace ID
-        workspace_id = self._get_workspace_id(collection)
+        workspace_id = self._extract_workspace_id(collection)
         
         url = '{}/{}/project/{}/collections/{}/tags'.format(
             self.HOME, self.API_1, workspace_id, collection['id'])
@@ -283,10 +318,10 @@ class ZegamiClient():
         '''
         
         # Get the workspace ID
-        workspace_id = self._get_workspace_id(collection)
+        workspace_id = self._extract_workspace_id(collection)
         
         url = '{}/{}/project/{}/datasets/{}/file'.format(
-            self.HOME, self.API_0, workspace_id, collection['dataset_id'])
+            self.HOME, self.API_0, workspace_id, self._extract_dataset_id(collection))
         
         rows_bytes = self._auth_get(url, return_response=True).content
         tsv_bytes = BytesIO(rows_bytes)
@@ -389,7 +424,7 @@ class ZegamiClient():
                              .format(type(rows)))
             
         # Get the workspace ID
-        workspace_id = self._get_workspace_id(collection)
+        workspace_id = self._extract_workspace_id(collection)
             
         # Get the imageset
         imageset = self._get_imageset(collection)
