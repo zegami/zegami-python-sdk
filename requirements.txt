@@ -1,3 +1,6 @@
+colorama
+importlib-metadata
+keyring
 twine
 pathlib
 numpy

@@ -7,7 +7,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='zegami-sdk',
-    version='0.1.1',
+    version='0.1.2',
     description='A suite of tools for interacting with Zegami through Python.',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -20,7 +20,10 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-	'twine',
+        'colorama',
+        'importlib-metadata',
+        'keyring',
+        'twine',
         'pathlib',
         'numpy',
         'pandas',
