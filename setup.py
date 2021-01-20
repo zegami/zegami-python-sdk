@@ -2,7 +2,8 @@ import pathlib
 from setuptools import setup
 
 HERE = pathlib.Path(__file__).parent
-README = (HERE / "README.md").read_text()
+with open('README.md', 'r', encoding='utf-8') as f:
+    README = f.read()
 
 setup(
     name='zegami-sdk',
@@ -25,5 +26,6 @@ setup(
         'Pillow',
         'requests',
         'xlrd',
-    ]
+    ],
+    python_requires='>=3.6'
 )
