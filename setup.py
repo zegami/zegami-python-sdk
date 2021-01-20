@@ -7,7 +7,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='zegami-sdk',
-    version='0.1.0',
+    version='0.1.1',
     description='A suite of tools for interacting with Zegami through Python.',
     long_description=README,
     long_description_content_type='text/markdown',
