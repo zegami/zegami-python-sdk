@@ -1,4 +1,4 @@
-Zegami Python SDK
+# Zegami Python SDK
 
 ![Zegami](zegami.png)
 
