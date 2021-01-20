@@ -1,3 +1,5 @@
+pathlib
+numpy
 pandas
 Pillow
 requests

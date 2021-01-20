@@ -332,7 +332,7 @@ class ZegamiClient():
         tsv_bytes = BytesIO(rows_bytes)
         
         try:
-            df = pd.read_csv(tsv_bytes)
+            df = pd.read_csv(tsv_bytes, sep='\t')
         except:
             try:
                 df = pd.read_excel(tsv_bytes)
@@ -516,6 +516,9 @@ class ZegamiClient():
             description     - A description of the collection.
         '''
         
+        # Unfinished
+        raise NotImplementedError('Not implemented yet, please check back soon!')
+        
         """
         # == Parse the inputs ==
         
@@ -612,9 +615,6 @@ class ZegamiClient():
             }
         }
         """
-        
-        # Unfinished
-        raise NotImplementedError('Not implemented yet, please check back soon!')
             
          
 """

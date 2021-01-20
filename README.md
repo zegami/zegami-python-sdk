@@ -1,3 +1,7 @@
+Zegami Python SDK
+
+![](zegami.png)
+
 # zegami-python-sdk
 An SDK and general wrapper for the lower level Zegami API for Python. This package provides higher level collection interaction and data retrieval.
 
@@ -37,4 +41,4 @@ beagles_imgs = zc.download_image_batch(beagles_urls)
 ```
 
 # In Development
-This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported yet - check back later!
+This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported currently - check back soon!
