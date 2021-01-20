@@ -9,7 +9,7 @@ An SDK and general wrapper for the lower level Zegami API for Python. This packa
 Grab this repo, open the script, and load an instance of ZegamiClient into a variable.
 
 ```
-from zegami_client import ZegamiClient
+from zegami_sdk.zegami_client import ZegamiClient
 
 zc = ZegamiClient(username, login)
 ```
