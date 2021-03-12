@@ -1,13 +1,28 @@
 # -*- coding: utf-8 -*-
+"""
+@author: Zegami Ltd
+"""
 
 import os
 from pathlib import Path
-from io import BytesIO
 import pandas as pd
 import requests
 from PIL import Image
 import concurrent.futures
 import time
+
+from _collection_methods import (
+    get_collections,
+    get_collection_by_name,
+    get_collection_by_id,
+    create_collection,
+)
+
+from _row_methods import (
+    get_rows,
+    get_rows_by_tag,
+    get_rows_by_filter,
+)
 
 
 class ZegamiClient():
@@ -15,6 +30,18 @@ class ZegamiClient():
     HOME  = 'https://zegami.com'
     API_0 = 'api/v0'
     API_1 = 'api/v1'
+    
+    # Collection methods
+    get_collections = get_collections
+    get_collection_by_name = get_collection_by_name
+    get_collection_by_id = get_collection_by_id
+    create_collection = create_collection
+    
+    # Row data methods
+    get_rows = get_rows
+    get_rows_by_tag = get_rows_by_tag
+    get_rows_by_filter = get_rows_by_filter
+    
     
     def __init__(self, username=None, password=None, token=None, allow_save_token=True):
         '''
@@ -257,154 +284,6 @@ class ZegamiClient():
     
     
     ### === API === ###
-    
-    def get_collections(self, workspace_id=None):
-        '''
-        Gets the collections belonging in a workspace ID, or the user's
-        original one by default.
-        '''
-        
-        workspace_id = workspace_id or self.user_info['tenant_id']
-        
-        url = '{}/{}/project/{}/collections/'.format(
-            self.HOME, self.API_0, workspace_id)
-        
-        collections = self._auth_get(url)['collections']
-        
-        return collections
-    
-    
-    def get_collection_by_id(self, id, workspace_id=None):
-        '''
-        Gets a collection by its ID, belonging to a workspace ID, or the user's
-        original one by default.
-        '''
-        
-        # Get all of the available ones
-        collections = [c for c in self.get_collections(workspace_id)]
-        
-        # Return the matching one
-        for c in collections:
-            if c['id'] == id:
-                return c
-            
-        # Or return None if not found
-        print('Couldn\'t find collection by ID \'{}\''.format(id))
-        return None
-        
-        
-    def get_collection_by_name(self, name, workspace_id=None):
-        '''
-        Gets a collection by name, belonging to a workspace ID, or the user's
-        original one by default.
-        '''
-        
-        # Get all the available ones
-        collections = [c for c in self.get_collections(workspace_id)]
-        
-        # Return the matching one
-        for c in collections:
-            if c['name'].lower() == name.lower():
-                return c
-            
-        # Or return None if not found
-        print('Couldn\'t find collection by name \'{}\''.format(name))
-        return None
-    
-    
-    def get_rows(self, collection):
-        '''
-        Gets the rows in a collection as a Dataframe.
-        '''
-        
-        # Get the workspace ID
-        workspace_id = self._extract_workspace_id(collection)
-        
-        url = '{}/{}/project/{}/datasets/{}/file'.format(
-            self.HOME, self.API_0, workspace_id, self._extract_dataset_id(collection))
-        
-        # fetch the output dataset blob (always a tsv).
-        # Some older collections only have a dataset, which may be tsv, or user-supplied xlsx/csv
-        ds_id = collection.get('output_dataset_id', collection.get('dataset_id'))
-        url = '{}/{}/project/{}/datasets/{}/file'.format(self.HOME, self.API_0, workspace_id, ds_id)
-
-        rows_bytes = self._auth_get(url, return_response=True).content
-        tsv_bytes = BytesIO(rows_bytes)
-        
-        try:
-            df = pd.read_csv(tsv_bytes, sep='\t')
-        except:
-            try:
-                df = pd.read_excel(tsv_bytes)
-            except:
-                print('Warning - failed to open metadata as a dataframe, returned '
-                      'the tsv bytes instead.')
-                return tsv_bytes
-    
-        return df
-    
-    
-    def get_rows_by_tag(self, collection, tags=None):
-        '''
-        Gets the rows of metadata in a collection by their tag as a Dataframe.
-        '''
-        
-        # Get all the metadata
-        rows = self.get_rows(collection)
-        
-        # Cast tags to list
-        t = type(tags)
-        if t == list: tags = [str(tag) for tag in tags]   # list
-        else: tags = [str(tags)]                          # str/int
-        
-        key_tag_dicts = self._get_tagged_indices(collection)
-        kt_keys = [int(dic['key']) for dic in key_tag_dicts]
-        kt_tags = [dic['tag'] for dic in key_tag_dicts]
-        
-        indices = list(range(len(rows)))
-        final_indices = indices.copy()
-        
-        for i in indices:
-            
-            is_valid = False
-            for key, tag in zip(kt_keys, kt_tags):
-                if key == i and tag in tags:
-                    is_valid = True
-                    break
-                
-            if not is_valid:
-                final_indices.remove(i)
-                
-        return rows.iloc[final_indices,:]
-    
-    
-    def get_rows_by_filter(self, collection, filters):
-        '''
-        Gets rows of metadata in a collection by a flexible filter.
-        
-        The filter should be a dictionary describing what to permit through
-        any specified columns.
-        
-        Example:
-            row_filter = { 'breed': ['Cairn', 'Dingo'] }
-            
-            This would only return rows whose 'breed' column matches 'Cairn'
-            or 'Dingo'.
-        '''
-        
-        assert type(filters) == dict, 'Filters should be a dict.'
-        
-        # Get all the metadata
-        rows = self.get_rows(collection)
-        
-        for fk, fv in filters.items():
-            
-            if not type(fv) == list:
-                fv = [fv]
-            
-            rows = rows[rows[fk].isin(fv)]
-            
-        return rows
         
         
     def get_image_urls(self, collection, rows):
@@ -495,7 +374,7 @@ class ZegamiClient():
                 
         return ordered
     
-   
+"""
     def create_collection(self, images, data, image_column, name, description='', workspace_id=None, fail_on_missing_files=True):
         '''
         Creates a Zegami collection under the specified workspace (or your
@@ -516,10 +395,6 @@ class ZegamiClient():
             description     - A description of the collection.
         '''
         
-        # Unfinished
-        raise NotImplementedError('Not implemented yet, please check back soon!')
-        
-        """
         # == Parse the inputs ==
         
         # Images
@@ -564,7 +439,7 @@ class ZegamiClient():
         if type(data) != pd.DataFrame:
             
             assert type(data) == str, 'Expected \'data\' argument to be a '\
-                'path to a file or pd.DataFrame, not a {}'.format(type(data))
+                'path to a file or pd.DataFrame, not a {}.'.format(type(data))
             
             assert os.path.exists(data), '\'data\' arg \'{}\' was not a '\
                 'valid filepath.'.format(data)
@@ -615,8 +490,7 @@ class ZegamiClient():
             }
         }
         """
-            
-         
+        
 """
 def create(log, session, args):
     time_start = datetime.now()
