@@ -11,14 +11,14 @@ from PIL import Image
 import concurrent.futures
 import time
 
-from _collection_methods import (
+from zegami_sdk._collection_methods import (
     get_collections,
     get_collection_by_name,
     get_collection_by_id,
     create_collection,
 )
 
-from _row_methods import (
+from zegami_sdk._row_methods import (
     get_rows,
     get_rows_by_tag,
     get_rows_by_filter,
