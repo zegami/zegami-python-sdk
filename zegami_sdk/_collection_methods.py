@@ -9,30 +9,48 @@ import pandas as pd
 import time
     
     
-def get_collections(self, workspace_id=None):
+def list_collections(self, workspace_id=None, return_dictionaries=False, suppress_message=False):
     '''
-    Gets the collections belonging in a workspace ID, or the user's
-    original one by default.
+    Displays collections in the workspace, or currently active one if not
+    provided.
+    Use return_dictionaries to return a list of collection objects.
     '''
     
-    workspace_id = workspace_id or self.user_info['tenant_id']
+    workspace_id = workspace_id or self.active_workspace_id
     
     url = '{}/{}/project/{}/collections/'.format(
         self.HOME, self.API_0, workspace_id)
     
-    collections = self._auth_get(url)['collections']
+    collections = self._auth_get(url, allow_bad=True)
+    if not collections:
+        return [] if return_dictionaries else None
+    collections = collections['collections']
+        
+    all_collection_ids = [c['id'] for c in collections]
+    all_collection_names = [c['name'] for c in collections]
     
-    return collections
+    if not suppress_message:
+        print('')
+        print('Collections in workspace \'{}\':'.format(workspace_id))
+        for id, name in zip(all_collection_ids, all_collection_names):
+            print('{} : {}'.format(id, name))
+        print('')
+    
+    if return_dictionaries:
+        return collections
     
     
 def get_collection_by_name(self, name, workspace_id=None):
     '''
-    Gets a collection by name, belonging to a workspace ID, or the user's
-    original one by default.
+    Gets a collection by name, belonging to a workspace ID, or the active one
+    by default.
     '''
     
+    workspace_id = workspace_id or self.active_workspace_id
+    
     # Get all the available ones
-    collections = [c for c in self.get_collections(workspace_id)]
+    collections = [c for c in self.list_collections(workspace_id,
+                    return_dictionaries=True, suppress_message=True)]
     
     # Return the matching one
     for c in collections:
@@ -46,12 +64,15 @@ def get_collection_by_name(self, name, workspace_id=None):
 
 def get_collection_by_id(self, id, workspace_id=None):
     '''
-    Gets a collection by its ID, belonging to a workspace ID, or the user's
-    original one by default.
+    Gets a collection by its ID, belonging to a workspace ID, or the active
+    one by default.
     '''
     
+    workspace_id = workspace_id or self.active_workspace_id
+    
     # Get all of the available ones
-    collections = [c for c in self.get_collections(workspace_id)]
+    collections = [c for c in self.list_collections(workspace_id,
+                    return_dictionaries=True, suppress_message=True)]
     
     # Return the matching one
     for c in collections:
@@ -63,121 +84,228 @@ def get_collection_by_id(self, id, workspace_id=None):
     return None
 
 
-def _execute_create_collection(workspace_id, config):
-    
-    # Generate the collection creation URL
-    url = '{}/{}/project/{}/collections/'\
-        .format(self.HOME, self.API_0, workspace_id)
-        
-    
-
-
-def create_collection(self, images, data, image_column, name, description='', workspace_id=None, fail_on_missing_files=True):
+def extract_collection_url(self, collection):
     '''
-    Creates a single-source Zegami collection under the specified workspace 
-    (or your default workspace if not specified). Resulting config is in multi
-    image source format (one source).
-    
-        images          - A list of filepaths of images or directories containing images.
-                          Each of these will be recursively scanned for valid images (jpg,
-                          jpeg, png, bmp, dcm).
-                                            
-        data            - Filepath to the data that goes with the images. Will also accept
-                          a pandas DataFrame.
-                          
-        image_column    - The name of the column in the data containing the filenames to
-                          the row's associated image. Typically 'Filename', 'Image', etc.
-                          
-        name            - The name of the collection.
-        
-        description     - A description of the collection.
+    Gets the URL of the collection, as seen in the browser when you navigate
+    to it.
     '''
     
-    # == Parse the inputs ==
+    wid = self._extract_workspace_id(collection)
+    cid = self._extract_id(collection)
     
-    # Image file-type checker
-    def _is_img(fp):
-        return os.path.exists(fp)\
-            and fp.lower().rsplit('.', 1)[-1]\
-            in ['jpg', 'jpeg', 'png', 'bmp', 'dcm']
-    
-    # Cast 'images' to a list
-    if type(images) != list:
-        images = [images]
-    
-    # Check every entry in the provided images, build the img_fps list
-    img_fps = []
-    for entry in images:
+    return '{}/collections/{}-{}'.format(self.HOME, wid, cid)
         
-        # Check it exists
-        if not os.path.exists(entry):
-            print('Warning - \'images\' filepath \'{}\' was not found!'\
-                  .format(entry))
-                
-            if fail_on_missing_files:
-                raise Exception('Missing image entry: \'{}\''.format(entry))
-                
-        # If it's a directory, recursively scan it for images
-        if os.path.isdir(entry):
-            img_fps += [fp for fp in Path(entry).rglob('*.*') if _is_img(fp)]
+    
+# -- Collection dictionary information extractors --
+
+def _extract_id(collection):
+    
+    assert type(collection) == dict,\
+        'Expected collection to be a dict, not {}'.format(type(collection))
+        
+    key = 'id'
+    assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
+        'dict: {}'.format(key, collection)
+        
+    return collection[key]
+
+
+def _extract_workspace_id(self, collection):
+    '''
+    If this cannot be derived from the dictionary, the client will attempt to
+    locate it from all workspaces in the user's scope. If THIS fails, it will
+    just assume its from the active workspace (shouldn't ever reach here).
+    '''
+    
+    assert type(collection) == dict,\
+        'Expected collection to be a dict, not {}'.format(type(collection))
+        
+    key = 'collectionThumbnailUrl'
+    
+    if key in collection.keys():
+        wid = collection[key].split('/', 4)[-1].split('/', 1)[0]
+        
+    else:
+        wid = self._lookup_workspace_id(collection)
+        
+        if not wid:   
+            wid = self.active_workspace_id
+            print('Assuming workspace from active_workspace_id \'{}\''.format(wid))
+        
+    return wid
+
+
+def _lookup_workspace_id(self, collection):
+    '''
+    Fallback for _extract_workspace_id to use if it can't be reliably
+    obtained from the dictionary. Searches through user_info workspaces,
+    trying the active workspace first.
+    '''
+    
+    # Look in the active workspace first
+    cols = self.list_collections(return_dictionaries=True, suppress_message=True)
+    for c in cols:
+        if c['id'] == collection['id']:
+            return self.active_workspace_id
+    
+    # Then try looking in all scoped workspaces
+    ws = self.user_info['projects']
+    for w in ws:
+        cols = self.list_collections(w['id'], return_dictionaries=True, suppress_message=True)
+        for c in cols:
+            if c['id'] == collection['id']:
+                print('Looked up collection \'{}\' in (not-active) workspace \'{}\''.format(c['name'], w['name']))
+                return w['id']
+
+
+def _extract_dataset_id(collection):
+    
+    assert type(collection) == dict,\
+        'Expected collection to be a dict, not {}'.format(type(collection))
+        
+    key = 'dataset_id'
+    assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
+        'dict: {}'.format(key, collection)
+        
+    return collection[key]
+
+
+def _extract_imageset_id(ZC, collection, source=None):
+    '''
+    Extracts the imageset_id from a collection. Provide a source index to get
+    the imageset_id of a specific source. If not provided and it is a
+    multi-source collection, gets the first source's imageset_id.
+    '''
+    
+    assert type(collection) == dict,\
+        'Expected collection to be a dict, not {}'.format(type(collection))
+        
+    assert source is None or (type(source) is int and source >= 0),\
+        'Expected source to be None or a positive integer, not: {}'.format(source)
+        
+    version = ZC._extract_version(collection)
+    key = 'imageset_id'
+    
+    # Old collections have the imageset ID in the root of the dictionary
+    if version < 2:
+        
+        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
+            'dict: {}'.format(key, collection)
+        
+        return collection[key]
+    
+    # Multi-source collections have lists of imageset info
+    source = source or 0
+    s = ZC._extract_image_source(collection, source)
+    
+    return s[key]
+        
+        
+def _get_imageset(self, collection, source=None):
+    '''
+    Gets a collection's imageset.
+    
+    If it is a multi-source collection, provide a source index to choose
+    which source to retrieve, or leave alone to just get the first source.
+    '''
+    
+    workspace_id = self._extract_workspace_id(collection)
+    imageset_id = self._extract_imageset_id(collection, source)
+    
+    url = '{}/{}/project/{}/imagesets/{}'.format(
+        self.HOME, self.API_0, workspace_id, imageset_id)
+        
+    return self._auth_get(url)['imageset']
+
+
+def _get_image_meta_lookup(self, collection, source=None):
+    '''
+    The order of the image urls and metadata rows is not matched. This
+    lookup lets you map one to the other.
+    
+    If it is a multi-source collection, provide a source index to choose
+    which source to retrieve, or leave alone to just get the first source.
+    '''
+    
+    # Get the workspace ID
+    workspace_id = self._extract_workspace_id(collection)
+    version = self._extract_version(collection)
+    key = 'imageset_dataset_join_id'
+    
+    if version < 2:
+        assert key in collection.keys(),\
+            'Expected to find \'{}\' in {}'.format(key, collection)
             
-        elif _is_img(entry):
-            img_fps.append(entry)
+        imageset_dataset_join_id = collection[key]
+    
+    else:
+        source = source or 0
+        s = self._extract_image_source(collection, source)
+        
+        assert key in s.keys(),\
+            'Expected to find \'{}\' in {}'.format(key, s)
             
-        else:
-            print('Warning - \'images\' entry \'{}\' was invalid!'\
-                  .format(entry))
-                
-            if fail_on_missing_files:
-                raise Exception('Missed file \'{}\''.format(entry))
-        
-    # Data
-    if type(data) != pd.DataFrame:
-        
-        assert type(data) == str, 'Expected \'data\' argument to be a '\
-            'path to a file or pd.DataFrame, not a {}.'.format(type(data))
-        
-        assert os.path.exists(data), '\'data\' arg \'{}\' was not a '\
-            'valid filepath.'.format(data)
-        
-        try:
-            ext = data.rsplit('.', 1)[-1].lower()
-            if ext in ['csv', 'tsv']:
-                data = pd.read_csv(data)
-            elif ext in ['xlsx']:
-                data = pd.read_excel(data)
-            else:
-                raise ValueError('Unsure how to read \'{}\', expected a '\
-                                 'tsv, csv or xlsx.'.format(data))
-                    
-        except Exception as e:
-            raise Exception('Failed to load data: \'{}\''.format(e))
-                
-    # Config
-    assert type(name) == str,\
-        'Expected \'name\' argument to be a str, not a {}'.format(type(name))
-        
-    assert type(description) == str,\
-        'Expected \'description\' argument to be a str, not a {}'.format(type(description))
-        
-    assert type(image_column) == str,\
-        'Expected \'image_column\' argument to be a str, not a {}'.format(type(image_column))
-        
+        imageset_dataset_join_id = s[key]
     
-    # Get the start time of this operation
-    t0 = time.time()
     
-    # Ensure a workspace ID (possibly default)
-    workspace_id = workspace_id or self.user_info['tenant_id']
+    # Get the join dataset
+    url = '{}/{}/project/{}/datasets/{}'.format(
+        self.HOME, self.API_0, workspace_id, imageset_dataset_join_id)
+    
+    imageset_dataset_joiner = self._auth_get(url)
+    
+    return imageset_dataset_joiner['dataset']['imageset_indices']
+
+
+def _extract_version(collection):
+    '''
+    Returns the version of the collection. Older versions do not support
+    multiple image sources. If a collection has no 'version' key, it is
+    assumed to be version 1.
+    '''
+    
+    return collection['version'] if 'version' in collection.keys() else 1
+
+
+def _extract_image_source(ZC, collection, source):
+    '''
+    Extracts an image_source dictionary from a v >= 2 collection.
+    '''
+    
+    v = ZC._extract_version(collection)
+    assert v >= 2,\
+        'Trying to extract image source from an old-style collection (v{})'.format(v)
+    
+    assert type(source) is int,\
+        'Expected source to be an int, not {}'.format(type(source))
         
-    # Generate the config that describes the collection
-    config = {
-        'name'          : name,
-        'description'   : description,
-        'dataset_column': image_column,
-        'dataset_type'  : 'file',
-        'imageset_type' : 'file',
-        'file_config'   : {
-            'path' : ''
-        }
-    }
+    assert source >= 0, 'Expected source to be >= 0'
+    
+    assert 'image_sources' in collection.keys(),\
+        'Expected to find \'image_sources\' in collection {}'.format(collection)
+        
+    srcs = collection['image_sources']
+        
+    assert len(srcs) > source,\
+        'Tried to get source index {} which is greater than len(sources) ({})'\
+        .format(source, len(srcs))
+        
+    return srcs[source]
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

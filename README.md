@@ -23,14 +23,30 @@ The client operates using a user token. By default, logging in once with a valid
 ```
 zc = ZegamiClient()
 
-# By default, the client will look for collections in your default workspace.
-# You can manually provide another workspace ID to look there instead.
+# The client will automatically configure its active workspace to your first
+# workspace. Change this to any other that you have access to simply by
+# setting:
+zc.active_workspace_id = '8-character-workspace-id'
 
-# Grab the collection (a dictionary of information)
+# You can list all available workspaces using:
+zc.list_workspaces()
+
+# You can list the collections in your current active workspace using:
+zc.list_collections()
+
+# To use these results in code, pass the keyword argument and/or suppress
+# the print-out:
+workspaces = zc.list_workspaces(return_dictionaries=True, suppress_message=True)
+collections = zc.list_collections(return_dictionaries=True, suppress_message=True)
+
+# Grab the collection (a dictionary of collection information):
 dogs_collection = zc.get_collection_by_name('My dogs collection')
 
-# Get a pandas.DataFrame of the data in the collection, filtering to only
-# items whose 'Breed' column == 'beagle'
+# Grab all the data rows as a pandas.DataFrame:
+dog_rows = zc.get_rows(dogs_collection)
+
+# Grab the data rows of the dogs whose 'Breed' values = 'beagle', as a
+# pandas.DataFrame:
 beagles = zc.get_rows_by_filter(dogs_collection, { 'Breed' : 'beagle' })
 
 # Get the image URLs associated with these rows

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Feb 26 15:05:31 2021
-
-@author: dougl
+@author: Zegami Ltd
 """
 
 import pandas as pd
@@ -23,8 +21,9 @@ def get_rows(self, collection):
     response = self._auth_get(url, return_response=True)
     
     assert response.status_code == 200,\
-        'get_rows: _auth_get({}) did not return a 200 response ({})'\
-        .format(url, response.status_code)
+        'get_rows: _auth_get({}) did not return a 200 response ({})\n\nbody:\n{}\n'\
+        .format(url, response.status_code, response.text)
+        
         
     tsv_bytes = BytesIO(response.content)
     

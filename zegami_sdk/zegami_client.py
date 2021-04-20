@@ -5,23 +5,50 @@
 
 import os
 from pathlib import Path
-import pandas as pd
-import requests
-from PIL import Image
-import concurrent.futures
-import time
 
-from zegami_sdk._collection_methods import (
-    get_collections,
+from _collection_methods import (
+    list_collections,
     get_collection_by_name,
     get_collection_by_id,
-    create_collection,
+    
+    extract_collection_url,
+    _extract_id,
+    _extract_workspace_id,
+    _lookup_workspace_id,
+    _extract_imageset_id,
+    _extract_dataset_id,
+    _extract_version,
+    _extract_image_source,
+    _get_imageset,
+    _get_image_meta_lookup
 )
 
-from zegami_sdk._row_methods import (
+from _row_methods import (
     get_rows,
     get_rows_by_tag,
     get_rows_by_filter,
+)
+
+from _image_methods import (
+    get_image_urls,
+    list_image_sources,
+    download_image,
+    download_image_batch,
+)
+
+from _annotation_methods import (
+    get_annotations_for_collection,
+    get_annotations_for_image,
+    post_annotation,
+    create_mask_annotation,
+    _reconstitute_mask,
+)
+
+from _util_methods import (
+    _get_token,
+    _check_status,
+    _auth_get,
+    _auth_post,
 )
 
 
@@ -32,18 +59,49 @@ class ZegamiClient():
     API_1 = 'api/v1'
     
     # Collection methods
-    get_collections = get_collections
+    list_collections = list_collections
     get_collection_by_name = get_collection_by_name
     get_collection_by_id = get_collection_by_id
-    create_collection = create_collection
+    
+    # Collection information processors
+    extract_collection_url = extract_collection_url
+    _get_imageset = _get_imageset
+    _get_image_meta_lookup = _get_image_meta_lookup
+    _extract_workspace_id = _extract_workspace_id
+    _lookup_workspace_id = _lookup_workspace_id # Fallback for extract
+    _extract_id = staticmethod(_extract_id)
+    _extract_imageset_id = classmethod(_extract_imageset_id)
+    _extract_dataset_id = staticmethod(_extract_dataset_id)
+    _extract_version = staticmethod(_extract_version)
+    _extract_image_source = classmethod(_extract_image_source)
     
     # Row data methods
     get_rows = get_rows
     get_rows_by_tag = get_rows_by_tag
     get_rows_by_filter = get_rows_by_filter
     
+    # Image methods
+    get_image_urls = get_image_urls
+    list_image_sources = list_image_sources
+    download_image = download_image
+    download_image_batch = download_image_batch
     
-    def __init__(self, username=None, password=None, token=None, allow_save_token=True):
+    # Annotation methods
+    get_annotations_for_collection = get_annotations_for_collection
+    get_annotations_for_image = get_annotations_for_image
+    post_annotation = post_annotation
+    create_mask_annotation = staticmethod(create_mask_annotation)
+    _reconstitute_mask = staticmethod(_reconstitute_mask)
+    
+    # Utilities
+    _auth_get = _auth_get
+    _auth_post = _auth_post
+    _get_token = classmethod(_get_token)
+    _check_status = staticmethod(_check_status)
+    
+    
+    def __init__(self, username=None, password=None, active_workspace_id=None,
+                 token=None, allow_save_token=True):
         '''
         Creates a ZegamiClient to interact with the API. Must be initialised
         using either an already acquired token, or a valid username/password.
@@ -53,6 +111,11 @@ class ZegamiClient():
         
         If you've already logged in previously with 'allow_save_token', you
         should be able to get started without providing any arguments.
+        
+        Assign an 'active_workspace' to make this client assume you're dealing
+        with collections in that workspace. This is automatically set to the
+        first workspace assigned to your account, but feel free to change it
+        for conveniently access collections in an alternate workspace.
         '''
         
         # Make sure we have a token
@@ -61,8 +124,15 @@ class ZegamiClient():
         # Create the async session
         self.headers = { 'Authorization' : 'Bearer {}'.format(self.token) }
         
-        # (sync) Get user info
+        # Get user info
         self._refresh_user_info()
+        
+        # Set the default workspace ID to use for collection operations
+        self.active_workspace_id = active_workspace_id or self.user_info['tenant_id']
+        
+        if not active_workspace_id:
+            print('\nNote: To use a different workspace, simply set zc.active_workspace_id=\'8-character-workspace-id\'. '\
+                  'For a list of these 8-character IDs try zc.list_workspaces(), or copy the ID from the site.')
         
         # Welcome message
         try:
@@ -70,6 +140,60 @@ class ZegamiClient():
                 self.user_info['name'].split(' ')[0]))
         except:
             pass
+        
+        
+    @property
+    def active_workspace_id():
+        pass
+    @active_workspace_id.getter
+    def active_workspace_id(self):
+        return self._active_workspace_id
+    @active_workspace_id.setter
+    def active_workspace_id(self, new_active_workspace_id):
+        assert type(new_active_workspace_id) is str, 'Set the active workspace ID using a string'
+        assert len(new_active_workspace_id) == 8, 'Expected active workspace ID to be 8 characters long'
+        
+        # Validate that this workspace is visible
+        name = None
+        for w in self.user_info['projects']:
+            if w['id'] == new_active_workspace_id:
+                name = w['name']
+                break
+        assert name is not None, 'Invalid workspace ID - not among list of workspaces available to the user.'
+        
+        self._active_workspace_id = new_active_workspace_id
+            
+        print('\nSet new active workspace ID to \'{}\', {}.'\
+              .format(self._active_workspace_id, name))
+        
+    
+    def list_workspaces(self, return_dictionaries=False, suppress_message=False):
+        '''
+        Displays workspaces available to the user.
+        Use return_dictionaries to return a list of workspace objects.
+        '''
+        
+        if not self.user_info:
+            self._refresh_user_info()
+            
+        tenant_id = self.user_info['tenant_id']
+        
+        ws = self.user_info['projects']
+            
+        all_workspace_ids = [w['id'] for w in ws]
+        all_workspace_names = [w['name'] for w in ws]
+        
+        if not suppress_message:
+            print('')
+            print('Your tenant (primary) workspace ID: {}'.format(tenant_id))
+            print('Your current active workspace ID:   {}'.format(self.active_workspace_id))
+            print('\nExhaustive list of available workspaces:')
+            for id, name in zip(all_workspace_ids, all_workspace_names):
+                print('{} : {}'.format(id, name))
+            print('')
+        
+        if return_dictionaries:
+            return ws
     
     
     def _ensure_token(self, username, password, token, allow_save_token):
@@ -108,120 +232,6 @@ class ZegamiClient():
                                  'and no locally saved token was found.')
     
     
-    def _get_token(self, username, password):
-        '''
-        Gets the client's token using a username and password.
-        '''
-        
-        url = '{}/oauth/token/'.format(self.HOME)
-        data = { 'username' : username, 'password' : password, 'noexpire' : True }
-        
-        r = requests.post(url, json=data)
-        
-        if r.status_code != 200:
-            raise Exception(f'Couldn\'t set token, bad response ({r.status_code})'
-                            '\nWas your username/password correct?')
-            
-        j = r.json()
-        
-        return j['token']
-        
-        
-    @staticmethod
-    def _check_status(response, allow_bad=False, is_async_request=True):
-        '''
-        Checks the response for a valid status code. If allow is set to True,
-        doesn't throw an exception.
-        '''
-        
-        code = response.status if is_async_request else response.status_code
-        
-        if code != 200:
-            if not allow_bad:
-                raise Exception('Bad request response ({}): {}'.format(code, response.reason))
-            else:
-                print('Warning - bad response ({}) allowed through: {}'.format(code, response.reason))
-                return False
-        
-        return True
-    
-    
-    @staticmethod
-    def _extract_workspace_id(collection):
-        
-        assert type(collection) == dict,\
-            'Expected collection to be a dict, not {}'.format(type(collection))
-            
-        key = 'collectionThumbnailUrl'
-        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
-            'dict: {}'.format(key, collection)
-        
-        s = collection[key]
-        return s.split('/', 4)[-1].split('/', 1)[0]
-    
-    
-    @staticmethod
-    def _extract_imageset_id(collection):
-        
-        assert type(collection) == dict,\
-            'Expected collection to be a dict, not {}'.format(type(collection))
-            
-        key = 'imageset_id'
-        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
-            'dict: {}'.format(key, collection)
-            
-        s = collection[key]
-        return s
-    
-    
-    @staticmethod
-    def _extract_dataset_id(collection):
-        
-        assert type(collection) == dict,\
-            'Expected collection to be a dict, not {}'.format(type(collection))
-            
-        key = 'dataset_id'
-        assert key in collection.keys(), 'Couldn\'t find \'{}\' in '\
-            'dict: {}'.format(key, collection)
-            
-        s = collection[key]
-        return s
-        
-        
-    async def _auth_get_async(self, session, url, allow_bad=False):
-        '''
-        (async) Makes a GET request and returns the result promise.
-        NOTE - This isn't being used, Python async is too unreliable.
-        '''
-        
-        async with session.get(url) as r:
-            j = await r.json()
-                
-            if not ZegamiClient._check_status(r, allow_bad):
-                return None
-        
-        return j
-    
-    
-    def _auth_get(self, url, allow_bad=False, return_response=False):
-        '''
-        Syncronous GET request. Used as standard over async currently.
-        
-        If allow_bad == True, only a warning will be printed on bad responses.
-        
-        If return_response == True, the response object is returned rather
-        than its .json() output.
-        '''
-        
-        r = requests.get(url, headers=self.headers)
-        
-        if not ZegamiClient._check_status(r, allow_bad or return_response, is_async_request=False):
-            if not return_response:
-                return None
-        
-        return r.json() if not return_response else r
-    
-    
     def _refresh_user_info(self):
         '''
         Sets the user info dictionary detailing user details and
@@ -231,41 +241,6 @@ class ZegamiClient():
         url = '{}/oauth/userinfo/'.format(self.HOME)
         
         self.user_info = self._auth_get(url)
-        
-        
-    def _get_imageset(self, collection):
-        '''
-        Gets a collection's imageset.
-        '''
-        
-        workspace_id = self._extract_workspace_id(collection)
-        imageset_id = self._extract_imageset_id(collection)
-        
-        url = '{}/{}/project/{}/imagesets/{}'.format(
-            self.HOME, self.API_0, workspace_id, imageset_id)
-        
-        return self._auth_get(url)['imageset']
-    
-    
-    def _get_image_meta_lookup(self, collection):
-        '''
-        The order of the image urls and metadata rows is not matched. This
-        lookup lets you map one to the other.
-        '''
-        
-        # Get the workspace ID
-        workspace_id = self._extract_workspace_id(collection)
-        
-        # Get the join ID
-        imageset_dataset_join_id = collection['imageset_dataset_join_id']
-        
-        # Get the join dataset
-        url = '{}/{}/project/{}/datasets/{}'.format(
-            self.HOME, self.API_0, workspace_id, imageset_dataset_join_id)
-        
-        imageset_dataset_joiner = self._auth_get(url)
-        
-        return imageset_dataset_joiner['dataset']['imageset_indices']
     
     
     def _get_tagged_indices(self, collection):
@@ -281,265 +256,36 @@ class ZegamiClient():
             self.HOME, self.API_1, workspace_id, collection['id'])
         
         return self._auth_get(url)['tagRecords']
-    
-    
-    ### === API === ###
         
         
-    def get_image_urls(self, collection, rows):
-        '''
-        Gets the URLs of every row of metadata provided. Can be a subset of
-        all metadata obtained with 'get_rows_by_tag()', etc.
-        Rows can be a pd.DataFrame, a list of ints, or an int.
-        '''
-        
-        # Turn the provided 'rows' into a list of ints
-        if type(rows) == pd.DataFrame:
-            indices = list(rows.index)
-            
-        elif type(rows) == list:
-            indices = [int(r) for r in rows]
-            
-        elif type(rows) == int:
-            indices = [rows]
-            
-        else:
-            raise ValueError('Invalid rows argument, \'{}\' not supported'\
-                             .format(type(rows)))
-            
-        # Get the workspace ID
-        workspace_id = self._extract_workspace_id(collection)
-            
-        # Get the imageset
-        imageset = self._get_imageset(collection)
-            
-        # Convert from imageset space to rowspace
-        lookup = self._get_image_meta_lookup(collection)
-            
-        # Convert rows into imageset indices
-        imageset_indices = [lookup[i] for i in indices]
-        
-        # Build the urls
-        urls = ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
-            self.HOME, self.API_0, workspace_id, imageset['id'], i)
-            for i in imageset_indices]
-        
-        return urls
-    
-    
-    def download_image(self, url):
-        '''
-        Downloads an image into memory (as a PIL.Image).
-        
-        To obtain a URL, search for rows using 'get_rows()' (or a filtered
-        version of this) and then pass these into 'get_image_urls()'
-        '''
-        
-        r = requests.get(url, headers=self.headers, stream=True)
-        r.raw.decode = True
-        
-        return Image.open(r.raw)
         
         
-    def download_image_batch(self, urls, max_workers=50, show_time_taken=True):
-        '''
-        Downloads multiple images into memory (each as a PIL.Image)
-        concurrently.
         
-        Please be aware that these images are being downloaded into memory,
-        if you download a huge collection of images you may eat up your RAM!
-        '''
         
-        def download_single(index, url):
-            return (index, self.download_image(url))
         
-        t = time.time()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-            
-            futures = [ex.submit(download_single, i, u) for i, u in enumerate(urls)]
         
-            images = {}
-            for f in concurrent.futures.as_completed(futures):
-                i, img = f.result()
-                images[i] = img
         
-        if show_time_taken:
-            print('\nDownloaded {} images in {:.2f} seconds.'.format(
-                len(images), time.time() - t))
         
-        # Results are a randomly ordered dictionary of results, so reorder them
-        ordered = []
-        for i in range(len(images)):
-            ordered.append(images[i])
-                
-        return ordered
-    
-"""
-    def create_collection(self, images, data, image_column, name, description='', workspace_id=None, fail_on_missing_files=True):
-        '''
-        Creates a Zegami collection under the specified workspace (or your
-        default workspace if not specified).
         
-            images          - A list of filepaths of images or directories containing images.
-                              Each of these will be recursively scanned for valid images (jpg,
-                              jpeg, png, bmp, dcm).
-                                                
-            data            - Filepath to the data that goes with the images. Will also accept
-                              a pandas DataFrame.
-                              
-            image_column    - The name of the column in the data containing the filenames to
-                              the row's associated image. Typically 'Filename', 'Image', etc.
-                              
-            name            - The name of the collection.
-            
-            description     - A description of the collection.
-        '''
         
-        # == Parse the inputs ==
         
-        # Images
-        img_fps = []
         
-        # Image file-type checker
-        def _is_img(fp):
-            return os.path.exists(fp) and\
-                fp.lower().rsplit('.', 1)[-1]\
-                in ['jpg', 'jpeg', 'png', 'bmp', 'dcm']
         
-        # Cast 'images' to a list
-        if type(images) != list:
-            images = [images]
         
-        # Check every entry in the provided images, build the img_fps list
-        for entry in images:
-            
-            # Check it exists
-            if not os.path.exists(entry):
-                print('Warning - \'images\' filepath \'{}\' was not found!'\
-                      .format(entry))
-                    
-                if fail_on_missing_files:
-                    raise Exception('Missed file \'{}\''.format(entry))
-                    
-            # If its a directory, recursively scan it for images
-            if os.path.isdir(entry):
-                img_fps += [fp for fp in Path(entry).rglob('*.*') if _is_img(fp)]
-                
-            elif _is_img(entry):
-                img_fps.append(entry)
-                
-            else:
-                print('Warning - \'images\' entry \'{}\' was invalid!'\
-                      .format(entry))
-                    
-                if fail_on_missing_files:
-                    raise Exception('Missed file \'{}\''.format(entry))
-            
-        # Data
-        if type(data) != pd.DataFrame:
-            
-            assert type(data) == str, 'Expected \'data\' argument to be a '\
-                'path to a file or pd.DataFrame, not a {}.'.format(type(data))
-            
-            assert os.path.exists(data), '\'data\' arg \'{}\' was not a '\
-                'valid filepath.'.format(data)
-            
-            try:
-                ext = data.rsplit('.', 1)[-1].lower()
-                if ext in ['csv', 'tsv']:
-                    data = pd.read_csv(data)
-                elif ext in ['xlsx']:
-                    data = pd.read_excel(data)
-                else:
-                    raise ValueError('Unsure how to read \'{}\', expected a '\
-                                     'tsv, csv or xlsx.'.format(data))
-                        
-            except Exception as e:
-                raise Exception('Failed to load data: \'{}\''.format(e))
-                    
-        # Config
-        assert type(name) == str,\
-            'Expected \'name\' argument to be a str, not a {}'.format(type(name))
-            
-        assert type(description) == 'str',\
-            'Expected \'description\' argument to be a str, not a {}'.format(type(description))
-            
-        assert type(image_column) == 'str',\
-            'Expected \'image_column\' argument to be a str, not a {}'.format(type(image_column))
-            
         
-        # Get the start time of this operation
-        t0 = time.time()
         
-        # Ensure a workspace ID (possibly default)
-        workspace_id = workspace_id or self.user_info['tenant_id']
         
-        # Generate the collection creation URL
-        url = '{}/{}/project/{}/collections/'\
-            .format(self.HOME, self.API_0, workspace_id)
-            
-        # Generate the config that describes the collection
-        config = {
-            'name'          : name,
-            'description'   : description,
-            'dataset_column': image_column,
-            'dataset_type'  : 'file',
-            'imageset_type' : 'file',
-            'file_config'   : {
-                'path' : ''
-            }
-        }
-        """
         
-"""
-def create(log, session, args):
-    time_start = datetime.now()
-    url = "{}collections/".format(
-        http.get_api_url(args.url, args.project),)
-    log.debug('POST: {}'.format(url))
-
-    # parse config
-    configuration = config.parse_args(args, log)
-    if "name" not in configuration:
-        log.error('Collection name missing from config file')
-        sys.exit(1)
-
-    # use name from config
-    coll = {
-        "name": configuration["name"],
-    }
-    # use description from config
-    for key in ["description"]:
-        if key in configuration:
-            coll[key] = configuration[key]
-
-    # replace empty description with an empty string
-    if 'description' in coll and coll["description"] is None:
-        coll["description"] = ''
-
-    # create the collection
-    response_json = http.post_json(session, url, coll)
-    log.print_json(response_json, "collection", "post", shorten=False)
-    coll = response_json["collection"]
-
-    dataset_config = dict(
-        configuration, id=coll["upload_dataset_id"]
-    )
-    if 'file_config' in dataset_config:
-        if 'path' in dataset_config['file_config'] or 'directory' in dataset_config['file_config']:
-            datasets.update_from_dict(log, session, dataset_config)
-
-    imageset_config = dict(
-        configuration, id=coll["imageset_id"]
-    )
-    imageset_config["dataset_id"] = coll["dataset_id"]
-    imageset_config["collection_id"] = coll["id"]
-    imagesets.update_from_dict(log, session, imageset_config)
-    delta_time = datetime.now() - time_start
-    log.debug("Collection uploaded in {}".format(delta_time))
-
-    return coll
         
-"""
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         

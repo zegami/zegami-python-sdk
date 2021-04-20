@@ -1,5 +1,6 @@
 build/
 dist/
+BuildReminder.txt
 *.egg-info/
 
 # Byte-compiled / optimized / DLL files
