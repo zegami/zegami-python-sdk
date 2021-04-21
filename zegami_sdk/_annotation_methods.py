@@ -4,7 +4,6 @@
 """
 
 import os
-import base64
 import numpy as np
 from PIL import Image
 
@@ -30,11 +29,11 @@ def get_annotations_for_collection(self, collection, source=None):
             'Expected provided source to be a positive integer, got {}'\
             .format(source)
             
-        srcs = self._list_image_sources(return_dictionaries=True, suppress_message=True)
+        srcs = self.list_image_sources(collection, return_dicts=True, hide_warning=True)
         
         assert source < len(srcs),\
             'Provided source is too high for number of sources available '\
-            '({} vs {})'.format(source, len(srcs))
+            '(index {} in list length {})'.format(source, len(srcs))
             
         url += '/source/{}'.format(source)
         
@@ -53,7 +52,7 @@ def get_annotations_for_image(self, collection, row_index, source=None):
     assert source is None or type(source) == int and source >= 0,\
         'Expected source to be None or a positive int, not {}'.format(source)
         
-    srcs = self.list_image_sources(collection, return_dictionaries=True, suppress_message=True)
+    srcs = self.list_image_sources(collection, return_dicts=True, hide_warning=True)
     uses_sources = len(srcs) > 0
     
     if uses_sources and source is None:
@@ -90,7 +89,7 @@ def post_annotation(self, collection, row_index, annotation, source=None, return
     For the 'annotation', provide the result of zc.create_<type>_annotation().
     '''
     
-    srcs = self.list_image_sources(collection, return_dictionaries=True, suppress_message=True)
+    srcs = self.list_image_sources(collection, return_dicts=True, hide_warning=True)
     uses_sources = len(srcs) > 0
     
     if uses_sources:

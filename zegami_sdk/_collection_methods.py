@@ -2,18 +2,15 @@
 """
 @author: Zegami Ltd
 """
-
-import os
-from pathlib import Path
-import pandas as pd
-import time
     
     
-def list_collections(self, workspace_id=None, return_dictionaries=False, suppress_message=False):
+def list_collections(self, return_dicts=False, workspace_id=None):
     '''
-    Displays collections in the workspace, or currently active one if not
-    provided.
-    Use return_dictionaries to return a list of collection objects.
+    Lists collections in the active workspace. Can optionally provide a
+    specific workspace_id to get collections in a non-active workspace.
+    
+    Use return_dicts=True to return the collection dicionaries, rather than
+    print the results to the terminal.
     '''
     
     workspace_id = workspace_id or self.active_workspace_id
@@ -21,23 +18,27 @@ def list_collections(self, workspace_id=None, return_dictionaries=False, suppres
     url = '{}/{}/project/{}/collections/'.format(
         self.HOME, self.API_0, workspace_id)
     
-    collections = self._auth_get(url, allow_bad=True)
+    try:
+        collections = self._auth_get(url)
+    except:
+        collections = None
+        
     if not collections:
-        return [] if return_dictionaries else None
+        return [] if return_dicts else None
+    
     collections = collections['collections']
         
     all_collection_ids = [c['id'] for c in collections]
     all_collection_names = [c['name'] for c in collections]
     
-    if not suppress_message:
-        print('')
-        print('Collections in workspace \'{}\':'.format(workspace_id))
-        for id, name in zip(all_collection_ids, all_collection_names):
-            print('{} : {}'.format(id, name))
-        print('')
-    
-    if return_dictionaries:
+    if return_dicts:
         return collections
+    
+    print('')
+    print('Collections in workspace \'{}\':'.format(workspace_id))
+    for id, name in zip(all_collection_ids, all_collection_names):
+        print('{} : {}'.format(id, name))
+    print('')
     
     
 def get_collection_by_name(self, name, workspace_id=None):
@@ -49,8 +50,7 @@ def get_collection_by_name(self, name, workspace_id=None):
     workspace_id = workspace_id or self.active_workspace_id
     
     # Get all the available ones
-    collections = [c for c in self.list_collections(workspace_id,
-                    return_dictionaries=True, suppress_message=True)]
+    collections = [c for c in self.list_collections(return_dicts=True, workspace_id=workspace_id)]
     
     # Return the matching one
     for c in collections:
@@ -71,8 +71,7 @@ def get_collection_by_id(self, id, workspace_id=None):
     workspace_id = workspace_id or self.active_workspace_id
     
     # Get all of the available ones
-    collections = [c for c in self.list_collections(workspace_id,
-                    return_dictionaries=True, suppress_message=True)]
+    collections = [c for c in self.list_collections(return_dicts=True, workspace_id=workspace_id)]
     
     # Return the matching one
     for c in collections:
@@ -143,7 +142,7 @@ def _lookup_workspace_id(self, collection):
     '''
     
     # Look in the active workspace first
-    cols = self.list_collections(return_dictionaries=True, suppress_message=True)
+    cols = self.list_collections(return_dicts=True)
     for c in cols:
         if c['id'] == collection['id']:
             return self.active_workspace_id
@@ -151,7 +150,7 @@ def _lookup_workspace_id(self, collection):
     # Then try looking in all scoped workspaces
     ws = self.user_info['projects']
     for w in ws:
-        cols = self.list_collections(w['id'], return_dictionaries=True, suppress_message=True)
+        cols = self.list_collections(return_dicts=True, workspace_id=w['id'])
         for c in cols:
             if c['id'] == collection['id']:
                 print('Looked up collection \'{}\' in (not-active) workspace \'{}\''.format(c['name'], w['name']))

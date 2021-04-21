@@ -104,18 +104,22 @@ def download_image_batch(self, urls, max_workers=50, show_time_taken=True):
     return ordered
 
 
-def list_image_sources(ZC, collection, return_dictionaries=False, suppress_message=False):
+def list_image_sources(ZC, collection, return_dicts=False, hide_warning=False):
     '''
-    Lists the image sources available in the provided collection. If it is an
-    old-style collection without sources, informs (or returns [] if returning
-    dictionaries).
+    Lists the image sources available in the provided collection. Specifying
+    return_dicts=True returns the results as a list of source dictionaries
+    rather than printing the results to the terminal.
+    
+    If it is an old-style collection without sources, returns [] if returning
+    dicts. Also warns the user of they are using the old format. Use
+    hide_warning=True to suppress this.
     '''
     
     version = ZC._extract_version(collection)
     
     if version < 2:
         
-        if not suppress_message:
+        if not hide_warning:
             print('\nNo image sources available, this is an old-style collection '\
                   'that does not operate on \'sources\'')
                 
@@ -126,11 +130,11 @@ def list_image_sources(ZC, collection, return_dictionaries=False, suppress_messa
     
     srcs = collection['image_sources']
     
-    if not suppress_message:
-        print('\nAvailable image sources:')
-        for i, s in enumerate(srcs):
-            print('{}\t[{}]:\t{}'.format(i, s['imageset_id'], s['name']))
-        print('')
-        
-    if return_dictionaries:
+    if return_dicts:
         return srcs
+    
+    print('\nAvailable image sources:')
+    for i, s in enumerate(srcs):
+        print('{}\t[{}]:\t{}'.format(i, s['imageset_id'], s['name']))
+    print('')
+        
