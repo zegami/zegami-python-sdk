@@ -186,7 +186,7 @@ class ZegamiClient():
         if not suppress_message:
             print('')
             print('Your tenant (primary) workspace ID: {}'.format(tenant_id))
-            print('Your current active workspace ID:   {}'.format(self.active_workspace_id))
+            print('Your currently active workspace ID: {}'.format(self.active_workspace_id))
             print('\nExhaustive list of available workspaces:')
             for id, name in zip(all_workspace_ids, all_workspace_names):
                 print('{} : {}'.format(id, name))

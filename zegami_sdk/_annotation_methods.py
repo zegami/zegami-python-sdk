@@ -26,7 +26,7 @@ def get_annotations_for_collection(self, collection, source=None):
     # If a source was provided, modify the URL
     if source is not None:
         
-        assert type(source) is int and source >= 0,\
+        assert type(source) == int and source >= 0,\
             'Expected provided source to be a positive integer, got {}'\
             .format(source)
             
@@ -50,7 +50,7 @@ def get_annotations_for_image(self, collection, row_index, source=None):
     by giving its data row.
     '''
     
-    assert source is None or type(source) is int and int >= 0,\
+    assert source is None or type(source) == int and source >= 0,\
         'Expected source to be None or a positive int, not {}'.format(source)
         
     srcs = self.list_image_sources(collection, return_dictionaries=True, suppress_message=True)
@@ -122,14 +122,14 @@ def create_mask_annotation(mask):
     sending.
     '''
     
-    if type(mask) is str:
+    if type(mask) == str:
         
         assert os.path.exists(mask),\
             'Got type(mask): str but the path \'{}\' did not exist'.format(mask)
             
         mask = np.array(Image.open(mask))
         
-    elif type(mask) is not np.array:
+    elif type(mask) != np.array:
         raise TypeError('Expected mask to be a str (filepath) or a np array, not {}'\
                         .format(type(mask)))
             
