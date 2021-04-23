@@ -61,17 +61,17 @@ You can get the metadata in a collection as a Pandas DataFrame using:
 
 You can get the images of a collection using:
 
-`first_10_img_urls = coll.get_image_urls(list(range(10)))`
-
-`imgs = coll.download_image_batch(first_10_img_urls)`
-
+```
+first_10_img_urls = coll.get_image_urls(list(range(10)))
+imgs = coll.download_image_batch(first_10_img_urls)
+```
 
 If your collection supports the new multi-image-source functionality, you can see your available sources using:
 
 `coll.show_sources()`
 
 
-For source 2's (3rd in 0-indexed-list) images, you would use
+For source 2's (3rd in 0-indexed-list) images, you would use:
 
 `first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
 
