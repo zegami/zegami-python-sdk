@@ -33,7 +33,6 @@ To see your available workspaces, use:
 You can then ask for a workspace by name, by ID, or just from a list
 ```
 all_workspaces = zc.workspaces
-
 first_workspace = all_workspaces[0]
 ```
 
@@ -41,6 +40,7 @@ or:
 
 ```
 zc.show_workspaces()
+
 # Note the ID of a workspace
 my_workspace = zc.get_workspace_by_id(id)
 ```
@@ -49,6 +49,7 @@ my_workspace = zc.get_workspace_by_id(id)
 ### Collections
 ```
 my_workspace.show_collections()
+
 # Note the name of a collection
 coll = my_workspace.get_collection_by_name(name_of_collection)
 ```
@@ -77,6 +78,7 @@ For source 2's (3rd in 0-indexed-list) images, you would use:
 
 ```
 first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
+
 # To see the first of these:
 coll.download_image(first_10_source3_img_urls[0])
 ```
