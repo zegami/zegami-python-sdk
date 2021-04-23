@@ -9,7 +9,7 @@ An SDK and general wrapper for the lower level Zegami API for Python. This packa
 Grab this repo, open the script, and load an instance of ZegamiClient into a variable.
 
 ```
-from zegami_sdk.zegami_client import ZegamiClient
+from zegami_sdk.client import ZegamiClient
 
 zc = ZegamiClient(username, login)
 ```
@@ -20,41 +20,44 @@ The client operates using a user token. By default, logging in once with a valid
 
 ## Example Usage
 ### Get the metadata and images associated with every dog of the 'beagle' breed in a collection of dogs:
+`zc = ZegamiClient()`
+
+### Workspaces
+To see your available workspaces, use:
+`zc.show_workspaces()`
+
+You can then ask for a workspace by name, by ID, or just from a list
 ```
-zc = ZegamiClient()
-
-# The client will automatically configure its active workspace to your first
-# workspace. Change this to any other that you have access to simply by
-# setting:
-zc.active_workspace_id = '8-character-workspace-id'
-
-# You can list all available workspaces using:
-zc.list_workspaces()
-
-# You can list the collections in your current active workspace using:
-zc.list_collections()
-
-# To use these results in code, pass the keyword argument and/or suppress
-# the print-out:
-workspaces = zc.list_workspaces(return_dictionaries=True, suppress_message=True)
-collections = zc.list_collections(return_dictionaries=True, suppress_message=True)
-
-# Grab the collection (a dictionary of collection information):
-dogs_collection = zc.get_collection_by_name('My dogs collection')
-
-# Grab all the data rows as a pandas.DataFrame:
-dog_rows = zc.get_rows(dogs_collection)
-
-# Grab the data rows of the dogs whose 'Breed' values = 'beagle', as a
-# pandas.DataFrame:
-beagles = zc.get_rows_by_filter(dogs_collection, { 'Breed' : 'beagle' })
-
-# Get the image URLs associated with these rows
-beagles_urls = zc.get_image_urls(dogs_collection, beagles)
-
-# Download those images (into memory)
-beagles_imgs = zc.download_image_batch(beagles_urls)
+all_workspaces = zc.workspaces
+first_workspace = all_workspaces[0]
 ```
+
+or:
+
+`zc.show_workspaces()`
+(note down the ID of a workspace)
+`my_workspace = zc.get_workspace_by_id(id)`
+
+### Collections
+`my_workspace.show_collections()`
+(note down name of a collection)
+`coll = my_workspace.get_collection_by_name(name_of_collection)`
+
+You can get the metadata in a collection as a Pandas DataFrame using:
+`rows = coll.rows`
+
+You can get the images of a collection using:
+`first_10_img_urls = coll.get_image_urls(list(range(10)))`
+`imgs = coll.download_image_batch(first_10_img_urls)`
+
+If your collection supports the new multi-image-source functionality, you can see your available sources using:
+`coll.show_sources()`
+
+For source 2's (3rd in 0-indexed-list) images, you would use
+`first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
+
+To see the first of these:
+`coll.download_image(first_10_source3_img_urls[0])`
 
 # In Development
 This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported currently - check back soon!
