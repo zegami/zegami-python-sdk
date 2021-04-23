@@ -22,13 +22,16 @@ The client operates using a user token. By default, logging in once with a valid
 ## Example Usage
 ### Get the metadata and images associated with every dog of the 'beagle' breed in a collection of dogs:
 
-`zc = ZegamiClient()`
-
+```
+zc = ZegamiClient()
+```
 
 ### Workspaces
 To see your available workspaces, use:
 
-`zc.show_workspaces()`
+```
+zc.show_workspaces()
+```
 
 You can then ask for a workspace by name, by ID, or just from a list
 ```
