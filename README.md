@@ -39,25 +39,26 @@ first_workspace = all_workspaces[0]
 
 or:
 
-`zc.show_workspaces()`
-
-(note down the ID of a workspace)
-
-`my_workspace = zc.get_workspace_by_id(id)`
+```
+zc.show_workspaces()
+# Note the ID of a workspace
+my_workspace = zc.get_workspace_by_id(id)
+```
 
 
 ### Collections
-`my_workspace.show_collections()`
-
-(note down name of a collection)
-
-`coll = my_workspace.get_collection_by_name(name_of_collection)`
+```
+my_workspace.show_collections()
+# Note the name of a collection
+coll = my_workspace.get_collection_by_name(name_of_collection)
+```
 
 
 You can get the metadata in a collection as a Pandas DataFrame using:
 
-`rows = coll.rows`
-
+```
+rows = coll.rows
+```
 
 You can get the images of a collection using:
 
@@ -68,17 +69,17 @@ imgs = coll.download_image_batch(first_10_img_urls)
 
 If your collection supports the new multi-image-source functionality, you can see your available sources using:
 
-`coll.show_sources()`
-
+```
+coll.show_sources()
+```
 
 For source 2's (3rd in 0-indexed-list) images, you would use:
 
-`first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
-
-
-To see the first of these:
-
-`coll.download_image(first_10_source3_img_urls[0])`
+```
+first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
+# To see the first of these:
+coll.download_image(first_10_source3_img_urls[0])
+```
 
 # In Development
 This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported currently - check back soon!
