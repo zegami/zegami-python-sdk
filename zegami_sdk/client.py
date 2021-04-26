@@ -6,7 +6,7 @@ Apache 2.0
 
 
 from .workspace import Workspace
-from util import (
+from .util import (
     _auth_get,
     _auth_post,
     _ensure_token,
