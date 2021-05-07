@@ -11,27 +11,46 @@ from time import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .source import Source
+from .annotation import _Annotation
 
 
 class Collection():
     
     @staticmethod
-    def _construct_collection(client, workspace, collection_dict):
+    def _construct_collection(client, workspace, collection_dict, allow_caching=True):
+        ''' Use this to instantiate Collection instances. Requires an
+        instantiated ZegamiClient, a Workspace instance, and the data
+        describing the collection. '''
+        
         assert type(collection_dict) == dict,\
             'Expected collection_dict to be a dict, not {}'.format(collection_dict)
         v = collection_dict['version'] if 'version' in collection_dict.keys() else 1
         if v == 1:
-            return Collection(client, workspace, collection_dict)
+            return Collection(client, workspace, collection_dict, allow_caching)
         elif v == 2:
-            return CollectionV2(client, workspace, collection_dict)
+            return CollectionV2(client, workspace, collection_dict, allow_caching)
     
     
-    def __init__(self, client, workspace, collection_dict):
+    def __init__(self, client, workspace, collection_dict, allow_caching=True):
+        '''!! STOP !!\n\nDon't instantiate using Collection(x, y, z). Use
+        Collection._construct_collection(x, y, z) instead.
+        It will determine which subclass is appropriate. '''
+        
         self._client = client
         self._data = collection_dict
         self._workspace = workspace
         self._check_data()
         self._check_version()
+        
+        # Caching
+        self.allow_caching = allow_caching
+        self._cached_rows = None
+        self._cached_image_meta_lookup = None
+        
+        
+    def clear_cache(self):
+        self._cached_rows = None
+        self._cached_image_meta_lookup = None
         
         
     @property
@@ -123,6 +142,9 @@ class Collection():
     def rows(self):
         ''' Returns all data rows of the collection as a Pandas DataFrame. '''
         
+        if self.allow_caching and self._cached_rows:
+            return self._cached_rows
+        
         c = self.client
         
         # Obtain the metadata bytes from Zegami
@@ -141,6 +163,9 @@ class Collection():
                 print('Warning - failed to open metadata as a dataframe, returned '
                       'the tsv bytes instead.')
                 return tsv_bytes
+            
+        if self.allow_caching:
+            self._cached_rows = df
     
         return df
     
@@ -235,6 +260,85 @@ class Collection():
             ordered.append(images[i])
                 
         return ordered
+    
+    
+    def get_annotations(self, source=None) -> list:
+        ''' Returns all annotations attached to the collection. '''
+        
+        if source is not None:
+            self._source_warning()
+        
+        c = self.client
+        url = '{}/{}/project/{}/annotations/collection/{}'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id)
+        
+        return self._auth_get(url)
+    
+    
+    def get_annotations_for_image(self, row_index, source=None) -> list:
+        ''' Returns all annotations for a single item in the collection. '''
+        
+        if source is not None:
+            self._source_warning()
+                
+        assert type(row_index) == int and row_index >= 0,\
+            'Expected row_index to be a positive int, not {}'.format(row_index)
+                
+        c = self.client
+        lookup = self._get_image_meta_lookup()
+        imageset_index = lookup[row_index]
+        
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'.format(
+            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index)
+        
+        return c._auth_get(url)
+        
+
+    def upload_annotation(self, uploadable, row_index, source=None,
+                          origin={ 'author' : 'user', 'date' : None } ):
+        ''' Uploads an annotation to Zegami. Requires uploadable annotation
+        data (see AnnotationClass.create_uploadable), the row index of 
+        the image the annotation belongs to, and the source (if using a
+        multi-image-source collection). If no source is provided, it will be
+        uploaded to the first source.
+        
+        Optionally provide an origin dictionary to detail information about
+        the upload. For example, if generating annotations using inference,
+        it is a good idea to declare 'author' : 'inference', and a 'model'
+        key. '''
+        
+        source = None if self.version == 1 else self._parse_source(source)
+        imageset_id = self._get_imageset_id(source)
+        image_meta_lookup = self._get_image_meta_lookup(source)
+        image_index = image_meta_lookup[row_index]
+        
+        assert type(uploadable) == dict,\
+            'Expected uploadable data to be a dict, not a {}'.format(type(uploadable))
+        assert 'type' in uploadable.keys(),\
+            'Expected \'type\' key in uploadable: {}'.format(uploadable)
+        assert 'annotation' in uploadable.keys(),\
+            'Expected \'annotation\' key in uploadable: {}'.format(uploadable)
+        assert type(imageset_id) == str,\
+            'Expected imageset_id to be a str, not {}'.format(type(imageset_id))
+        
+        # Get the class-specific data to upload
+        payload = {
+            'imageset_id' : imageset_id,
+            'image_index' : image_index,
+            'type' : uploadable['type'],
+            'annotation' : uploadable['annotation'],
+        }
+        
+        # Check that there are no missing fields in the payload
+        for k, v in payload.items():
+            assert v, 'Empty annotation uploadable data value for \'{}\''.format(k)
+        
+        c = self.client
+        url = '{}/{}/project/{}/annotations/'.format(
+            c.HOME, c.API_1, self.workspace_id)
+        r = c._auth_post(url, payload, return_response=True)
+        
+        return r
         
         
     def _check_data(self) -> None:
@@ -267,11 +371,19 @@ class Collection():
     
     
     def _get_image_meta_lookup(self, source=0) -> list:
-        self._check_data()
+        if self.allow_caching and self._cached_image_meta_lookup:
+            self._check_data()
         assert 'imageset_dataset_join_id' in self._data.keys(),\
             'Collection\'s data didn\'t have an \'imageset_dataset_join_id\' key'
         join_id = self._data['imageset_dataset_join_id']
         return self._join_id_to_lookup(join_id)
+    
+    
+    @staticmethod
+    def _source_warning():
+            print('Warning - Called with a source when this is not a '\
+                  'multi-image-source collection. Treating as if no source '\
+                  'was required.')
         
     
     def __len__(self) -> int:
@@ -284,10 +396,6 @@ class Collection():
 
 class CollectionV2(Collection):
     
-    def __init__(self, client, workspace, collection_dict):
-        super(CollectionV2, self).__init__(client, workspace, collection_dict)
-    
-    
     @property
     def sources(): pass
     @sources.getter
@@ -299,14 +407,44 @@ class CollectionV2(Collection):
     
     
     def show_sources(self):
+        ''' lists the IDs and names of all sources in the collection. '''
+        
         ss = self.sources
         print('\nImage sources ({}):'.format(len(ss)))
         for s in ss:
             print('{} : {}'.format(s._imageset_id, s.name))
+            
+            
+    def get_annotations(self, source=0) -> list:
+        ''' Gets all annotations for a particular source of a collection. '''
+        
+        c = self.client
+        source = self._parse_source(source)
+        
+        url = '{}/{}/project/{}/annotations/collection/{}/source/{}'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id, source.id)
+        return c._auth_get(url)
+    
+    
+    def get_annotations_for_image(self, row_index, source=0) -> list:
+        ''' Returns all annotations for a single item in the collection. '''
+        
+        c = self.client
+        source = self._parse_source(source)
+        assert type(row_index) == int and row_index >= 0,\
+            'Expected row_index to be a positive int, not {}'.format(row_index)
+                
+        lookup = self._get_image_meta_lookup()
+        imageset_index = lookup[row_index]
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'.format(
+            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index)
+        
+        return c._auth_get(url)
         
         
     def _get_imageset_id(self, source=0) -> str:
         ''' Source can be an int or a Source instance from this collection. '''
+        
         self._check_data()
         self._check_version()
         return self._parse_source(source)._imageset_id
@@ -319,6 +457,9 @@ class CollectionV2(Collection):
         
         
     def _parse_source(self, source):
+        ''' Accepts an int or a Source instance and always returns a checked
+        Source instance. '''
+        
         ss = self.sources
         
         # If an index is given, check the index is sensible and return a Source

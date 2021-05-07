@@ -146,7 +146,7 @@ def create_mask_annotation(mask):
     return {
         'imageset_id' : None,
         'image_index' : None,
-        'type' : 'mask_1UC1_png',
+        'type' : 'mask_1UC1',
         'annotation' : {
             'data' : mask_bytes,
             'width' : w,

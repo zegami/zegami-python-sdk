@@ -51,7 +51,7 @@ class Workspace():
         for c in cs:
             if c.name.lower() == name.lower():
                 return c
-        print('Couldn\'t find a collection with the name \'{}\''.format(name))
+        raise ValueError('Couldn\'t find a collection with the name \'{}\''.format(name))
         
         
     def get_collection_by_id(self, id):
@@ -59,7 +59,7 @@ class Workspace():
         for c in cs:
             if c.id == id:
                 return c
-        print('Couldn\'t find a collection with the ID \'{}\''.format(id))
+        raise ValueError('Couldn\'t find a collection with the ID \'{}\''.format(id))
         
         
     def show_collections(self):

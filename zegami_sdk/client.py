@@ -16,6 +16,19 @@ from .util import (
 
 
 class ZegamiClient():
+    '''
+    This client acts as the root for browsing your Zegami data. It
+    facilitates making authenticated requests using your token, initially
+    generated with login credentials. After logging in once, subsequent
+    credentials should typically not be required, as the token is saved
+    locally (zegami.token in your root OS folder).
+    
+    Use zc.show_workspaces() to see your available workspaces. You can access
+    your workspaces using either zc.get_workspace_by...() or by directly
+    using workspace = zc.workspaces[0] ([1], [2], ...). These then act as
+    controllers to browse collections from. Collections in turn act as
+    controllers to browse data from.
+    '''
     
     HOME  = 'https://zegami.com'
     API_0 = 'api/v0'
@@ -85,7 +98,7 @@ class ZegamiClient():
         for w in ws:
             if w.name.lower() == name.lower():
                 return w
-        print('Couldn\'t find a workspace with the name \'{}\''.format(name))
+        raise ValueError('Couldn\'t find a workspace with the name \'{}\''.format(name))
     
     
     def get_workspace_by_id(self, id):
@@ -93,7 +106,7 @@ class ZegamiClient():
         for w in ws:
             if w.id == id:
                 return w
-        print('Couldn\'t find a workspace with the ID \'{}\''.format(id))
+        raise ValueError('Couldn\'t find a workspace with the ID \'{}\''.format(id))
     
     
     def show_workspaces(self):
@@ -106,9 +119,9 @@ class ZegamiClient():
     
     def _refresh_client(self):
         ''' Refreshes user_info and workspaces. '''
+        
         url = '{}/oauth/userinfo/'.format(self.HOME)
         self._user_info = self._auth_get(url)
-        
         self._workspaces = [Workspace(self, w) for w in self._user_info['projects']]
         
         
