@@ -9,6 +9,7 @@ from .workspace import Workspace
 from .util import (
     _auth_get,
     _auth_post,
+    _auth_put,
     _ensure_token,
     _get_token,
     _check_status
@@ -36,6 +37,7 @@ class ZegamiClient():
     
     _auth_get = _auth_get
     _auth_post = _auth_post
+    _auth_put = _auth_put
     _ensure_token = _ensure_token
     _get_token = classmethod(_get_token)
     _check_status = staticmethod(_check_status)

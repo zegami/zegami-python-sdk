@@ -73,8 +73,8 @@ def _check_status(response, is_async_request=False):
     
     code = response.status if is_async_request else response.status_code
     
-    assert code == 200, 'Bad request response ({}): {}\n\nbody:\n{}'.format(code, response.reason, response.text)
     
+    assert response.ok, 'Bad request response ({}): {}\n\nbody:\n{}'.format(code, response.reason, response.text)
 
 def _auth_get(self, url, return_response=False, **kwargs):
     '''
@@ -107,4 +107,20 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
     
     self._check_status(r, is_async_request=False)
         
+    return r if return_response else r.json()
+
+def _auth_put(self, url, body, return_response=False, **kwargs):
+    '''
+    Syncronous PUT request. Used as standard over async currently.
+
+    If return_response == True, the response object is returned rather than
+    its .json() output.
+
+    Any additional kwargs are forwarded onto the requests.put().
+    '''
+
+    r = requests.put(url, body, headers=self.headers, **kwargs)
+
+    self._check_status(r, is_async_request=False)
+
     return r if return_response else r.json()
