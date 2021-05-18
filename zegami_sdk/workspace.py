@@ -15,6 +15,10 @@ class Workspace():
         self._check_data()
         
         
+
+    def __repr__(self):
+        return "<Workspace id={} name={}>".format(self.id, self.name)
+
     @property
     def id(): pass
     @id.getter

@@ -48,6 +48,10 @@ class Collection():
         self._cached_image_meta_lookup = None
         
         
+
+    def __repr__(self):
+        return "<Collection id={} name={}".format(self.id, self.name)
+
     def clear_cache(self):
         self._cached_rows = None
         self._cached_image_meta_lookup = None
