@@ -3,6 +3,8 @@ Zegami Ltd.
 Apache 2.0
 """
 
+
+
 def add_node(client, workspace, action, params={}, type="dataset", dataset_parents=None, imageset_parents=None, name="New node"):
     """Create a new processing node."""
     assert type in ["dataset", "imageset"]
@@ -48,7 +50,8 @@ def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
     # strip irrelevant fields
     readonly_fields = ['data_link', 'id', 'parent_versioning_values', 'schema', 'total_rows']
     for field in readonly_fields:
-        node.pop(field)
+        if field in node:
+            node.pop(field)
 
     # add new parent to source
     parent_ids = node.get('source').get(type + '_id')

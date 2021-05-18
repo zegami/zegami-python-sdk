@@ -1,4 +1,3 @@
-import pdb
 from zegami_sdk.client import ZegamiClient
 from zegami_sdk import nodes
 
@@ -15,7 +14,7 @@ collection = workspace.get_collection_by_id(COLLECTION_ID)
 print(collection)
 
 augment_imageset_id = collection._data.get('augment_imageset_id')
-import pdb; pdb.set_trace()
+
 # create classification imagesets to generate classification data
 resp = nodes.add_node(
     zc,
