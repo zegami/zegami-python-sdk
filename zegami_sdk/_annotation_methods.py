@@ -5,6 +5,7 @@
 
 import os
 import numpy as np
+import base64
 from PIL import Image
 
 
@@ -142,13 +143,16 @@ def create_mask_annotation(mask):
     
     # Encode the single channel boolean mask into a '1' type image, as bytes
     mask_bytes = Image.fromarray(mask.astype('uint8') * 255).convert('1').tobytes()
+
+    # Encode the mask bytes prior to serialisation
+    mask_serialised = base64.b64encode(mask_bytes)
     
     return {
         'imageset_id' : None,
         'image_index' : None,
         'type' : 'mask_1UC1',
         'annotation' : {
-            'data' : mask_bytes,
+            'data' : mask_serialised,
             'width' : w,
             'height' : h,
         }
@@ -163,8 +167,10 @@ def _reconstitute_mask(annotation):
     data = annotation['data']
     w = annotation['width']
     h = annotation['height']
+
+    decoded_data = base64.b64decode(data)
     
-    bool_arr = np.array(Image.frombytes('1', (w, h), data), dtype=int) > 0
+    bool_arr = np.array(Image.frombytes('1', (w, h), decoded_data), dtype=int) > 0
     
     return bool_arr
     
