@@ -46,11 +46,7 @@ class Collection():
         self.allow_caching = allow_caching
         self._cached_rows = None
         self._cached_image_meta_lookup = None
-        
-        
-
-    def __repr__(self):
-        return "<Collection id={} name={}".format(self.id, self.name)
+    
 
     def clear_cache(self):
         self._cached_rows = None
@@ -367,7 +363,7 @@ class Collection():
         return self._data['imageset_id']
     
     
-    def _join_id_to_lookup(self, join_id):
+    def _join_id_to_lookup(self, join_id) -> list:
         assert type(join_id) == str, 'Expected join_id to be string: {}'.format(join_id)
         c = self.client
         url = '{}/{}/project/{}/datasets/{}'.format(c.HOME, c.API_0, self.workspace_id, join_id)
@@ -384,7 +380,7 @@ class Collection():
     
     
     @staticmethod
-    def _source_warning():
+    def _source_warning() -> None:
             print('Warning - Called with a source when this is not a '\
                   'multi-image-source collection. Treating as if no source '\
                   'was required.')
@@ -396,6 +392,9 @@ class Collection():
             'Collection\'s data didn\'t have a \'total_data_items\' key'
         return self._data['total_data_items']
         
+
+    def __repr__(self) -> str:
+        return "Collection id={} name={}".format(self.id, self.name)
         
 
 class CollectionV2(Collection):

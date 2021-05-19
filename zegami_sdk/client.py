@@ -42,6 +42,7 @@ class ZegamiClient():
     _get_token = classmethod(_get_token)
     _check_status = staticmethod(_check_status)
     
+    
     def __init__(self, username=None, password=None, token=None, allow_save_token=True):
         
         # Make sure we have a token
