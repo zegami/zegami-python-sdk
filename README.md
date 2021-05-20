@@ -88,3 +88,17 @@ coll.download_image(first_10_source3_img_urls[0])
 
 # In Development
 This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported currently - check back soon!
+
+
+# Developer Conventions
+Keeping the SDK easy and fluent to use externally and internally is crucial. If contributing PRs, some things to consider:
+
+1) MOST IMPORTANT - Zegami has concepts used internally in its data engine, like 'imageset', 'dataset'. Strive to never require the user to have to know anything about these, or even see them. If the user needs an image, they should ask for an image from a concept they ARE expected to understand like a 'collection' or a 'workspace'. Anything obscure should be hidden, for example: `_get_imageset()`, so that auto-suggestions of a class will always contain relevant and useful methods/attribs/properties.
+
+2) Avoid ambiguous parameters. Use the best worded, lowest level parameters types for functions/methods. Give them obvious names. Any ambiguity or unobvious parameters MUST be described in detail in the docstring. Avoid parameters like 'target' or 'action', or describe them explicitly.
+
+3) `assert`! If you expect an RGB image, check that your input is an array, that its len(shape) == 3, that shape[2] == 3. Use a proper message if this is not the case.
+
+4) Do not ask for more information than is already obtainable. A source knows its parent collection, which knows how to get its own IDs and knows the client. A method never needs to reference a source, the owning collection, and the client all together. Moreover, these chains should have sensible assertions and checks built in, and potentially property/method-based shortcuts (with assertions).
+
+5) Use sensible defaults wherever possible for minimal effort when using the SDK. V1 collections typically use `source=None`, while V2 collections use `source=0`. This allows a user with an old/new (single source) collection to never even have to know what a source is when fetching images.
