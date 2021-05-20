@@ -31,6 +31,7 @@ class ZegamiClient():
     controllers to browse data from.
     '''
     
+    TOKEN_NAME = 'zegami.token'
     HOME  = 'https://zegami.com'
     API_0 = 'api/v0'
     API_1 = 'api/v1'
@@ -129,12 +130,13 @@ class ZegamiClient():
         
         
         
+class _ZegamiStagingClient(ZegamiClient):
+    
+    TOKEN_NAME = 'staging.zegami.token'
+    HOME = 'https://staging.zegami.com'
         
-        
-        
-        
-        
-        
+    def __init__(self, username=None, password=None, token=None, allow_save_token=True):
+        super().__init__(username, password, token, allow_save_token)
         
         
         

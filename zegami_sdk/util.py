@@ -18,7 +18,7 @@ def _ensure_token(self, username, password, token, allow_save_token):
     '''
     
     # Potential location of locally saved token
-    local_token_path = os.path.join(Path.home(), 'zegami.token')
+    local_token_path = os.path.join(Path.home(), self.TOKEN_NAME)
     
     if token:
         if os.path.exists(token):
@@ -36,7 +36,6 @@ def _ensure_token(self, username, password, token, allow_save_token):
         
     else:
         # Potentially use local token
-        local_token_path = os.path.join(Path.home(), 'zegami.token')
         if os.path.exists(local_token_path):
             with open(local_token_path, 'r') as f:
                 self.token = f.read()
