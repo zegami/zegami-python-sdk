@@ -94,10 +94,7 @@ class PublicWorkspace(Workspace):
         super().__init__(client, {
             'created' : 'N/A',
             'creator_tenant_slug' : 'N/A',
-            'features' : ['automatic_data_clustering',
-                          'automatic_image_clustering',
-                          'image_resize',
-                          'use_new_creation_ui'],
+            'features' : [],
             'id' : 'public',
             'name' : 'public',
             'roles' : [],
