@@ -378,14 +378,11 @@ class Collection():
         if self.allow_caching and self._cached_image_meta_lookup:
             self._check_data()
             
-        keys = ['imageset_dataset_join_id', 'join_dataset_id']
-        assert keys[0] in self._data.keys() or keys[1] in self._data.keys(),\
-            'Collection\'s data didn\'t contain one of: {}'.format(keys)
-            
-        try:
-            join_id = self._data[keys[0]]
-        except:
-            join_id = self._data[keys[1]]
+        key = 'imageset_dataset_join_id'
+        assert key in self._data.keys(),\
+            'Collection\'s data didn\'t contain \'{}\''.format(key)
+           
+        join_id = self._data[key]
         
         return self._join_id_to_lookup(join_id)
     
