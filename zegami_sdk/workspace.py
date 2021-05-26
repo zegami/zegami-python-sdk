@@ -83,25 +83,6 @@ class Workspace():
 
     def __repr__(self):
         return "<Workspace id={} name={}>".format(self.id, self.name)
-    
-    
-    
-class PublicWorkspace(Workspace):
-    ''' The public workspace is an edge case, and some information is not
-    available. '''
-    
-    def __init__(self, client):
-        super().__init__(client, {
-            'created' : 'N/A',
-            'creator_tenant_slug' : 'N/A',
-            'features' : [],
-            'id' : 'public',
-            'name' : 'public',
-            'roles' : [],
-            'storage_location' : 'AZ_North_Europe',
-            'subscription_level' : None,
-            'updated' : None
-        })
         
         
         

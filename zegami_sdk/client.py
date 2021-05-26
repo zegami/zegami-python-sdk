@@ -5,7 +5,7 @@ Apache 2.0
 """
 
 
-from .workspace import Workspace, PublicWorkspace
+from .workspace import Workspace
 from .util import (
     _auth_get,
     _auth_post,
@@ -126,8 +126,7 @@ class ZegamiClient():
         
         url = '{}/oauth/userinfo/'.format(self.HOME)
         self._user_info = self._auth_get(url)
-        self._workspaces = [PublicWorkspace(self)]
-        self._workspaces += [Workspace(self, w) for w in self._user_info['projects']]
+        self._workspaces = [Workspace(self, w) for w in self._user_info['projects']]
         
         
         
