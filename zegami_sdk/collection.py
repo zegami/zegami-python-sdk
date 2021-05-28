@@ -142,7 +142,7 @@ class Collection():
     def rows(self):
         ''' Returns all data rows of the collection as a Pandas DataFrame. '''
         
-        if self.allow_caching and self._cached_rows:
+        if self.allow_caching and self._cached_rows is not None:
             return self._cached_rows
         
         c = self.client
@@ -170,7 +170,7 @@ class Collection():
         return df
     
     
-    def get_rows_by_filter(self, collection, filters):
+    def get_rows_by_filter(self, filters):
         ''' Gets rows of metadata in a collection by a flexible filter.
         
         The filter should be a dictionary describing what to permit through
@@ -364,18 +364,26 @@ class Collection():
     
     
     def _join_id_to_lookup(self, join_id) -> list:
-        assert type(join_id) == str, 'Expected join_id to be string: {}'.format(join_id)
         c = self.client
+        assert type(join_id) == str, 'Expected join_id to be string: {}'.format(join_id)
         url = '{}/{}/project/{}/datasets/{}'.format(c.HOME, c.API_0, self.workspace_id, join_id)
-        return c._auth_get(url)['dataset']['imageset_indices']
+        dataset = c._auth_get(url)['dataset']
+        assert 'imageset_indices' in dataset.keys(), 'No \'imageset_indices\' '\
+            'in obtained dataset: {}'.format(dataset.keys())
+            
+        return dataset['imageset_indices']
     
     
     def _get_image_meta_lookup(self, source=0) -> list:
         if self.allow_caching and self._cached_image_meta_lookup:
             self._check_data()
-        assert 'imageset_dataset_join_id' in self._data.keys(),\
-            'Collection\'s data didn\'t have an \'imageset_dataset_join_id\' key'
-        join_id = self._data['imageset_dataset_join_id']
+            
+        key = 'imageset_dataset_join_id'
+        assert key in self._data.keys(),\
+            'Collection\'s data didn\'t contain \'{}\''.format(key)
+           
+        join_id = self._data[key]
+        
         return self._join_id_to_lookup(join_id)
     
     
