@@ -142,7 +142,7 @@ class Collection():
     def rows(self):
         ''' Returns all data rows of the collection as a Pandas DataFrame. '''
         
-        if self.allow_caching and self._cached_rows:
+        if self.allow_caching and self._cached_rows is not None:
             return self._cached_rows
         
         c = self.client
@@ -170,7 +170,7 @@ class Collection():
         return df
     
     
-    def get_rows_by_filter(self, collection, filters):
+    def get_rows_by_filter(self, filters):
         ''' Gets rows of metadata in a collection by a flexible filter.
         
         The filter should be a dictionary describing what to permit through
