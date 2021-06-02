@@ -294,7 +294,7 @@ class Collection():
         return c._auth_get(url)
         
 
-    def upload_annotation(self, uploadable, row_index, source=None,
+    def upload_annotation(self, uploadable, row_index=None, image_index=None, source=None,
                           origin={ 'author' : 'user', 'date' : None } ):
         ''' Uploads an annotation to Zegami. Requires uploadable annotation
         data (see AnnotationClass.create_uploadable), the row index of 
@@ -310,8 +310,15 @@ class Collection():
         source = None if self.version == 1 else self._parse_source(source)
         imageset_id = self._get_imageset_id(source)
         image_meta_lookup = self._get_image_meta_lookup(source)
-        image_index = image_meta_lookup[row_index]
         
+        if image_index is None:
+            assert row_index is not None,\
+                'Must provide either row_index or image_index'
+            image_index = image_meta_lookup[row_index]
+        else:
+            assert row_index is None,\
+                'Must provide only one or row_index, image_index'
+
         assert type(uploadable) == dict,\
             'Expected uploadable data to be a dict, not a {}'.format(type(uploadable))
         assert 'type' in uploadable.keys(),\
