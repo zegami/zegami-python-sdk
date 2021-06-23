@@ -1,5 +1,5 @@
-from zegami_sdk.client import ZegamiClient
 from zegami_sdk import nodes
+from zegami_sdk.client import ZegamiClient
 
 WORKSPACE_ID = ''
 COLLECTION_ID = ''
