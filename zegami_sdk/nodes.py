@@ -1,8 +1,8 @@
 """
 Zegami Ltd.
+
 Apache 2.0
 """
-
 
 
 def add_node(client, workspace, action, params={}, type="dataset", dataset_parents=None, imageset_parents=None, name="New node"):
@@ -31,6 +31,7 @@ def add_node(client, workspace, action, params={}, type="dataset", dataset_paren
     print("Created node: {}".format(new_node_id))
 
     return resp
+
 
 def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
     """
