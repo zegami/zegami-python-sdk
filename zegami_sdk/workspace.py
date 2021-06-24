@@ -4,6 +4,15 @@ Zegami Ltd.
 
 Apache 2.0
 """
+import io
+from urllib.parse import urlparse
+
+from azure.storage.blob import (
+    ContainerClient,
+    ContentSettings,
+)
+
+import magic
 
 from .collection import Collection
 
@@ -74,6 +83,48 @@ class Workspace():
         assert self._data, 'Workspace had no self._data set'
         assert type(self._data) == dict, 'Workspace didn\'t have a dict for '\
             'its data ({})'.format(type(self._data))
+
+    def get_storage_item(self, storage_id):
+        c = self._client
+        url = '{}/{}/project/{}/storage/{}'.format(c.HOME, c.API_1, self.id, storage_id)
+        resp = c._auth_get(url, return_response=True)
+        return io.BytesIO(resp.content), resp.headers.get('content-type')
+
+    def create_storage_item(self, data, mime_type=None):
+        if not mime_type:
+            try:
+                mime_type = magic.from_buffer(data, mime=True)
+            except TypeError:
+                mime_type = 'application/octet'
+
+        # get signed url to use signature
+        client = self._client
+        url = '{}/{}/project/{}/storage/signedurl'.format(client.HOME, client.API_1, self.id)
+        resp = client._auth_get(url)
+
+        blob_id = 'storage/' + resp['id']
+        url = resp['signedurl']
+
+        url_object = urlparse(url)
+        sas_token = url_object.query
+        account_url = url_object.scheme + '://' + url_object.netloc
+        container_name = url_object.path.split('/')[1]
+
+        container_client = ContainerClient(account_url, container_name, credential=sas_token)
+        container_client.upload_blob(
+            blob_id,
+            data,
+            blob_type='BlockBlob',
+            content_settings=ContentSettings(content_type=mime_type)
+        )
+
+        return resp['id']
+
+    def delete_storage_item(self, storage_id):
+        c = self._client
+        url = '{}/{}/project/{}/storage/{}'.format(c.HOME, c.API_1, self.id, storage_id)
+        resp = c._auth_delete(url)
+        return resp.ok
 
     def __len__(self):
         len(self.collections)
