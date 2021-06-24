@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Apr 23 16:37:17 2021
+Created on Fri Apr 23 16:37:17 2021.
 
 @author: dougl
 """
 
 import os
 from pathlib import Path
+
 import requests
 
 
@@ -80,6 +81,16 @@ def _auth_get(self, url, return_response=False, **kwargs):
     r = requests.get(url, headers=self.headers, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
+
+
+def _auth_delete(self, url, **kwargs):
+    """Syncronous DELETE request. Used as standard over async currently.
+
+    Any additional kwargs are forwarded onto the requests.delete().
+    """
+    resp = requests.delete(url, headers=self.headers, **kwargs)
+    self._check_status(resp, is_async_request=False)
+    return resp
 
 
 def _auth_post(self, url, body, return_response=False, **kwargs):

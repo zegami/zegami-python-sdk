@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+        "name": "Run Example",
+        "type": "python",
+        "request": "launch",
+        "module": "examples.<example-name>",
+        "args": [],
+        "env": {}
+    },
+  ]
+}
