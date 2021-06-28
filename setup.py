@@ -2,6 +2,7 @@ import os
 import pathlib
 from setuptools import setup
 
+<<<<<<< HEAD
 # Update version here when you want to increment the version in PyPi
 sdk_version = '0.3.0'
 
@@ -15,6 +16,9 @@ except KeyError:
     if not os.environ.get('SDK_PRODUCTION_BUILD'):
         version += '+dev'
 
+=======
+version = os.environ.get('ZEGAMI_SDK_VERSION', '')
+>>>>>>> 3a607e7... Add a few more libraries to setup.py and add workflow dispatch
 
 HERE = pathlib.Path(__file__).parent
 with open('README.md', 'r', encoding='utf-8') as f:
