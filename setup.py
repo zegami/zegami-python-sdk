@@ -38,6 +38,7 @@ setup(
         'azure-storage-blob>=12.8.1',
         'python-magic>=0.4.24; sys_platform=="linux"',
         'python-magic-bin; platform_system=="Windows" or sys_platform=="darwin"',
+        'azure-storage-blob>=12.8.1',
         'colorama',
         'importlib-metadata',
         'keyring',
