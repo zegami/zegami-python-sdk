@@ -1,0 +1,17 @@
+---
+    version: '3.7'
+    services:
+        zegami_sdk:
+            build:
+                context: ./
+                dockerfile: Dockerfile
+            image: zegami/zegami-python-sdk
+            init: true
+            volumes:
+                - ./:/app/
+            environment:
+                DEBUG: 'True'
+                PYTHONPATH: /app
+                PYTHONUNBUFFERED: 1  # Ensure Python logs to stdout without delay
+            command:
+                - bash

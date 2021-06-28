@@ -1,0 +1,20 @@
+name: zegami python sdk build
+on:
+  push:
+    paths:
+    - "**"
+jobs:
+  package:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - run: make build
+    - run: make package
+    - uses: actions/upload-artifact@v2
+      with:
+        name: wheel
+        path: dist/*.whl
+    - uses: actions/upload-artifact@v2
+      with:
+        name: archive
+        path: dist/*.tar.gz
