@@ -28,3 +28,4 @@ jobs:
       with:
         name: archive
         path: dist/*.tar.gz
+    - run: make lint
