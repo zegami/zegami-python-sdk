@@ -1,10 +1,10 @@
 from zegami_sdk import nodes
 from zegami_sdk.client import ZegamiClient
 
-WORKSPACE_ID = 'idUpFsFf'
-COLLECTION_ID = '60d49817ddb415563a6526e1'
+WORKSPACE_ID = ''
+COLLECTION_ID = ''
 
-zc = ZegamiClient("mingya.zhou@zegami.com", "GHdUh5deDHXez2G")
+zc = ZegamiClient("", "")
 
 workspace = zc.get_workspace_by_id(WORKSPACE_ID)
 collection = workspace.get_collection_by_id(COLLECTION_ID)
