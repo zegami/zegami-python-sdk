@@ -1,5 +1,11 @@
 name: zegami python sdk build
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
+        required: true
+        default: '0.0.0-devci'
   push:
     paths:
     - "**"
@@ -10,6 +16,8 @@ jobs:
     - uses: actions/checkout@v2
     - run: make build
     - run: make package
+      env:
+        ZEGAMI_SDK_VERSION: ${{ github.event.inputs.version }}
     - uses: actions/upload-artifact@v2
       with:
         name: wheel

@@ -1,5 +1,8 @@
+import os
 import pathlib
 from setuptools import setup
+
+version = os.environ.get('ZEGAMI_SDK_VERSION', '')
 
 HERE = pathlib.Path(__file__).parent
 with open('README.md', 'r', encoding='utf-8') as f:
@@ -7,7 +10,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='zegami-sdk',
-    version='0.3.0',
+    version=version,
     description='A suite of tools for interacting with Zegami through Python.',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -21,7 +24,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'azure-storage-blob',
-        'python-magic; sys_platform=="linux"',
+        'python-magic>=0.4.24; sys_platform=="linux"',
         'python-magic-bin; platform_system=="Windows" or sys_platform=="darwin"',
         'azure-storage-blob>=12.8.1',
         'colorama',
