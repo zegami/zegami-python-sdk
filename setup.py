@@ -2,7 +2,19 @@ import os
 import pathlib
 from setuptools import setup
 
-version = os.environ.get('ZEGAMI_SDK_VERSION', '')
+# Update version here when you want to increment the version in PyPi
+sdk_version = '0.2.5'
+
+# If no ZEGAMI_SDK_VERSION set use the version
+try:
+    version = os.environ['ZEGAMI_SDK_VERSION']
+    if version == '':
+        raise KeyError
+except KeyError:
+    version = sdk_version
+    if not os.environ.get('SDK_PRODUCTION_BUILD'):
+        version += '+dev'
+
 
 HERE = pathlib.Path(__file__).parent
 with open('README.md', 'r', encoding='utf-8') as f:
@@ -23,10 +35,9 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'azure-storage-blob',
+        'azure-storage-blob>=12.8.1',
         'python-magic>=0.4.24; sys_platform=="linux"',
         'python-magic-bin; platform_system=="Windows" or sys_platform=="darwin"',
-        'azure-storage-blob>=12.8.1',
         'colorama',
         'importlib-metadata',
         'keyring',

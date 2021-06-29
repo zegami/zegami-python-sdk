@@ -14,5 +14,6 @@
                 PYTHONPATH: /app
                 PYTHONUNBUFFERED: 1  # Ensure Python logs to stdout without delay
                 ZEGAMI_SDK_VERSION: ${ZEGAMI_SDK_VERSION}
+                SDK_PRODUCTION_BUILD: ${SDK_PRODUCTION_BUILD}
             command:
                 - bash
