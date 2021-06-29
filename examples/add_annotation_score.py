@@ -16,8 +16,10 @@ resp = nodes.add_node(
     zc,
     workspace,
     'mask_annotation_score',
+    # truth authors and evaluated authors should either 
+    # be not specified or a list of strings
     {
-        "evaluated_authors": ["Alloy Scratch Detector_0100"],
+        # "evaluated_authors": ["authors name"],
     },
     'imageset',
     imageset_parents=[imageset_id],
