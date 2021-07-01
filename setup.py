@@ -15,11 +15,14 @@ setup(
     author='Zegami Ltd',
     author_email='help@zegami.com',
     license='Apache 2.0',
-    packages= [
+    packages=[
         'zegami_sdk'
     ],
     include_package_data=True,
     install_requires=[
+        'azure-storage-blob',
+        'python-magic',
+        'python-magic-bin',
         'colorama',
         'importlib-metadata',
         'keyring',

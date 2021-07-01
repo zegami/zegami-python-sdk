@@ -269,7 +269,7 @@ class Collection():
         url = '{}/{}/project/{}/annotations/collection/{}'.format(
             c.HOME, c.API_1, self.workspace_id, self.id)
 
-        return self._auth_get(url)
+        return c._auth_get(url)
 
     def get_annotations_for_image(self, row_index, source=None) -> list:
         """Returns all annotations for a single item in the collection."""
