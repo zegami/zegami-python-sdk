@@ -1,6 +1,7 @@
 azure-storage-blob==12.8.1
 flake8==3.9.2
 python-magic==0.4.24
+requests-mock==1.9.3
 colorama
 importlib-metadata
 keyring

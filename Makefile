@@ -15,3 +15,7 @@ build:
 .PHONY: shell
 shell:
 	docker-compose run zegami_sdk
+
+.PHONY: test
+test:
+	docker-compose run zegami_sdk python3 -m unittest discover
