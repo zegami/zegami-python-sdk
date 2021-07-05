@@ -4,6 +4,8 @@ Zegami Ltd.
 Apache 2.0
 """
 
+import base64
+import io
 import os
 
 import numpy as np
@@ -123,11 +125,20 @@ class AnnotationMask(_Annotation):
             'Expected bool_mask to have a shape of 2 (height, width), not {}'.format(bool_mask.shape)
 
         h, w = bool_mask.shape
-        mask_bytes = Image.fromarray(bool_mask.astype('uint8') * 255).convert('1').tobytes()
+
+        # Encode the mask array as a 1 bit PNG encoded as base64
+        mask_image = Image.fromarray(bool_mask.astype('uint8') * 255).convert('1')
+        mask_buffer = io.BytesIO()
+        mask_image.save(mask_buffer, format='PNG')
+        byte_data = mask_buffer.getvalue()
+        mask_b64 = base64.b64encode(byte_data)
+        mask_string = "data:image/png;base64,{}".format(mask_b64.decode("utf-8"))
 
         uploadable = super().create_uploadable()
+
+        # TODO ensure this matches the required schema
         uploadable['annotation'] = {
-            'data': mask_bytes,
+            'mask': mask_string,
             'width': w,
             'height': h,
         }
