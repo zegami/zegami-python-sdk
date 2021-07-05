@@ -93,7 +93,7 @@ def _auth_delete(self, url, **kwargs):
     return resp
 
 
-def _auth_post(self, url, body, return_response=False, **kwargs):
+def _auth_post(self, url, return_response=False, **kwargs):
     """Syncronous POST request. Used as standard over async currently.
 
     If return_response == True, the response object is returned rather than
@@ -101,12 +101,12 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.post().
     """
-    r = requests.post(url, body, headers=self.headers, **kwargs)
+    r = requests.post(url, headers=self.headers, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
 
-def _auth_put(self, url, body, return_response=False, **kwargs):
+def _auth_put(self, url, return_response=False, headers=None, **kwargs):
     """Syncronous PUT request. Used as standard over async currently.
 
     If return_response == True, the response object is returned rather than
@@ -114,6 +114,9 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.put().
     """
-    r = requests.put(url, body, headers=self.headers, **kwargs)
+    if headers == None:
+        headers = self.headers
+    r = requests.put(url, headers=headers, **kwargs)
     self._check_status(r, is_async_request=False)
-    return r if return_response else r.json()
+    print(r.status_code)
+    # return r if return_response else r.json()

@@ -8,6 +8,8 @@ from io import BytesIO
 import pandas as pd
 from PIL import Image
 from time import time
+from sys import getsizeof
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .source import Source
@@ -92,6 +94,17 @@ class Collection():
         assert 'dataset_id' in self._data.keys(),\
             'Collection\'s data didn\'t have a \'dataset_id\' key'
         return self._data['dataset_id']
+
+    @property
+    def _upload_dataset_id():
+        pass
+
+    @_dataset_id.getter
+    def _upload_dataset_id(self) -> str:
+        self._check_data()
+        assert 'upload_dataset_id' in self._data.keys(),\
+            'Collection\'s data didn\'t have a \'upload_dataset_id\' key'
+        return self._data['upload_dataset_id']
 
     @property
     def version():
@@ -222,6 +235,58 @@ class Collection():
         return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
             c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
             i) for i in imageset_indices]
+
+    def replace_data(self, df):
+        """Replaces the data in the collection.
+
+        The provided input should be a pandas dataframe.
+        """
+        tsv = ''
+        if type(df) == pd.DataFrame:
+            tsv = df.to_csv(sep='\t', index=False)
+        else:
+            raise ValueError('Invalid rows argument, \'{}\' not supported'.format(type(df)))
+
+        c = self.client
+        imageset_url = '{}/{}/project/{}/imagesets/{}/image_url'.format(
+            c.HOME, c.API_0, self.workspace_id, self._get_imageset_id())
+        upload_dataset_url = '{}/{}/project/{}/datasets/{}/'.format(
+            c.HOME, c.API_0, self.workspace_id, self._upload_dataset_id)
+        bytes_tsv = bytes(tsv, 'utf-8')
+        mime = 'application/octet-stream'
+        blob_id = str(uuid.uuid4())
+        name = 'provided_as_dataframe.tsv'
+        info = {
+            "blob_id": blob_id,
+            "name": name,
+            "size": getsizeof(bytes_tsv),
+            "mimetype": mime
+        }
+        r = c._auth_post(imageset_url, json={"image": info}, return_response=True)
+        data = r.json()
+        url = data["url"]
+        # upload the dataset to the blob
+        if url.startswith("/"):
+            url = 'https://storage.googleapis.com{}'.format(url)
+        headers = {'Content-Type': mime}
+        if 'windows.net' in url:
+            headers['x-ms-blob-type'] = 'BlockBlob'
+        #r = requests.put(url, headers=headers, **kwargs)
+        r = c._auth_put(url, data=bytes_tsv, headers=headers)
+        # replace the dataset in the collection
+        current_dataset = c._auth_get(upload_dataset_url)["dataset"]
+        # current_dataset["source"].pop("schema", None)
+        current_dataset["source"]["upload"]["name"] = name
+        current_dataset["source"]["blob_id"] = blob_id
+        r = c._auth_put(upload_dataset_url, json=current_dataset)
+
+    def save_file(self, df):
+        tsv = df.to_csv(sep='\t', index=False)
+        with open('tsv.tsv', 'w') as f:
+            f.write(tsv)
+        bytes_tsv = bytes(tsv, 'utf-8')
+        with open('bytes.tsv', 'wb') as f:
+            f.write(bytes_tsv)
 
     def download_image(self, url):
         """Downloads an image into memory as a PIL.Image.
