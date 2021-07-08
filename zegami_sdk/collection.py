@@ -5,11 +5,10 @@ Apache 2.0
 """
 
 from io import BytesIO
+import os
 import pandas as pd
 from PIL import Image
 from time import time
-from sys import getsizeof
-import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .source import Source
@@ -236,57 +235,41 @@ class Collection():
             c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
             i) for i in imageset_indices]
 
-    def replace_data(self, df):
+    def replace_data(self, data):
         """Replaces the data in the collection.
 
-        The provided input should be a pandas dataframe.
+        The provided input should be a pandas dataframe or a local csv/tsv file.
         """
         tsv = ''
-        if type(df) == pd.DataFrame:
-            tsv = df.to_csv(sep='\t', index=False)
+        name = ''
+        if type(data) == pd.DataFrame:
+            tsv = data.to_csv(sep='\t', index=False)
+            name = 'provided_as_dataframe.tsv'
         else:
-            raise ValueError('Invalid rows argument, \'{}\' not supported'.format(type(df)))
+            name = os.path.split(data)[-1]
+            assert name.split('.')[-1] in ['tsv', 'csv']
+            with open(data, 'r') as f:
+                tsv = f.read()
 
-        c = self.client
-        imageset_url = '{}/{}/project/{}/imagesets/{}/image_url'.format(
-            c.HOME, c.API_0, self.workspace_id, self._get_imageset_id())
-        upload_dataset_url = '{}/{}/project/{}/datasets/{}/'.format(
-            c.HOME, c.API_0, self.workspace_id, self._upload_dataset_id)
+        zeg_client = self.client
+        upload_dataset_url = f'{zeg_client.HOME}/{zeg_client.API_0}/project/{self.workspace_id}/datasets/{self._upload_dataset_id}'
         bytes_tsv = bytes(tsv, 'utf-8')
-        mime = 'application/octet-stream'
-        blob_id = str(uuid.uuid4())
-        name = 'provided_as_dataframe.tsv'
-        info = {
-            "blob_id": blob_id,
-            "name": name,
-            "size": getsizeof(bytes_tsv),
-            "mimetype": mime
-        }
-        r = c._auth_post(imageset_url, json={"image": info}, return_response=True)
-        data = r.json()
-        url = data["url"]
-        # upload the dataset to the blob
-        if url.startswith("/"):
-            url = 'https://storage.googleapis.com{}'.format(url)
-        headers = {'Content-Type': mime}
-        if 'windows.net' in url:
-            headers['x-ms-blob-type'] = 'BlockBlob'
-        #r = requests.put(url, headers=headers, **kwargs)
-        r = c._auth_put(url, data=bytes_tsv, headers=headers)
-        # replace the dataset in the collection
-        current_dataset = c._auth_get(upload_dataset_url)["dataset"]
-        # current_dataset["source"].pop("schema", None)
+        mime_type = 'application/octet-stream'
+
+        print(f'Updating collection\'s [id: {self.id}] dataset.\n')
+
+        # create blob storage and upload to it
+        url, blob_id = zeg_client._create_singed_blob_storage(self.workspace_id)
+        zeg_client._upload_to_signed_blob_storage(bytes_tsv, url, mime_type)
+
+        # update the upload dataset details
+        current_dataset = zeg_client._auth_get(upload_dataset_url)["dataset"]
         current_dataset["source"]["upload"]["name"] = name
         current_dataset["source"]["blob_id"] = blob_id
-        r = c._auth_put(upload_dataset_url, json=current_dataset)
 
-    def save_file(self, df):
-        tsv = df.to_csv(sep='\t', index=False)
-        with open('tsv.tsv', 'w') as f:
-            f.write(tsv)
-        bytes_tsv = bytes(tsv, 'utf-8')
-        with open('bytes.tsv', 'wb') as f:
-            f.write(bytes_tsv)
+        # returning response is true as otherwise it will try to return json but this response is empty
+        zeg_client._auth_put(upload_dataset_url, body=None, return_response=True, json=current_dataset)
+        print(f'Dataset [id: {self._dataset_id}] updated successfully.')
 
     def download_image(self, url):
         """Downloads an image into memory as a PIL.Image.

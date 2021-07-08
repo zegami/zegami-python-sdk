@@ -94,44 +94,38 @@ def _auth_delete(self, url, **kwargs):
     return resp
 
 
-def _auth_post(self, url, return_response=False, **kwargs):
+def _auth_post(self, url, body, return_response=False, **kwargs):
     """Syncronous POST request. Used as standard over async currently.
-
     If return_response == True, the response object is returned rather than
     its .json() output.
-
     Any additional kwargs are forwarded onto the requests.post().
     """
-    r = requests.post(url, headers=self.headers, **kwargs)
+    r = requests.post(url, body, headers=self.headers, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
 
-def _auth_put(self, url, return_response=False, headers=None, **kwargs):
+def _auth_put(self, url, body, return_response=False, **kwargs):
     """Syncronous PUT request. Used as standard over async currently.
-
     If return_response == True, the response object is returned rather than
     its .json() output.
-
     Any additional kwargs are forwarded onto the requests.put().
     """
-    if headers == None:
-        headers = self.headers
-    r = requests.put(url, headers=headers, **kwargs)
+    r = requests.put(url, body, headers=self.headers, **kwargs)
     self._check_status(r, is_async_request=False)
-    print(r.status_code)
-    # return r if return_response else r.json()
+    return r if return_response else r.json()
 
 
-def _create_singed_blob_store(self, workspace_id):
-    """Create a signed blob store.
+def _create_singed_blob_storage(self, workspace_id):
+    """Create a signed blob storage.
 
     Returns:
-        [str]: the url of the blob store and it's id
+        [str]: blob storage url
+        [str]: blob storage id
     """
     blob_url = f'{self.HOME}/{self.API_1}/project/{workspace_id}/signed_blob_url'
     blob_id = str(uuid.uuid4())
-    response = self._auth_post(blob_url, json={"ids": [blob_id]}, return_response=True)
+    response = self._auth_post(blob_url, body=None, json={"ids": [blob_id]}, return_response=True)
     try:
         data = response.json()
         url = data[blob_id]
@@ -140,14 +134,15 @@ def _create_singed_blob_store(self, workspace_id):
         print(ex)
 
 
-def _upload_to_signed_blob_store(data, url, mime_type, headers=None, **kwargs):
-    """Upload data to an already create blob store."""
+def _upload_to_signed_blob_storage(data, url, mime_type, headers=None, **kwargs):
+    """Upload data to an already create blob storage."""
     if url.startswith("/"):
         url = f'https://storage.googleapis.com{url}'
     headers = {'Content-Type': mime_type}
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
     try:
-        requests.put(url, data=data, headers=headers, **kwargs)
+        response = requests.put(url, data=data, headers=headers, **kwargs)
+        assert response.status_code == 201
     except Exception as ex:
         print(ex)
