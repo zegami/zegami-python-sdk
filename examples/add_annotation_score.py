@@ -27,18 +27,6 @@ resp = nodes.add_node(
 )
 annotation_score_node = resp.get('imageset')
 
-# create image_info dataset to render annotation score as a tsv file
-resp = nodes.add_node(
-    zc,
-    workspace,
-    'image_info',
-    {},
-    'dataset',
-    imageset_parents=annotation_score_node.get('id'),
-    name="annotation score info ds"
-)
-info_node = resp.get('dataset')
-
 # create mapping dataset to map
 join_dataset_id = collection._data.get('imageset_dataset_join_id')
 resp = nodes.add_node(
@@ -47,10 +35,8 @@ resp = nodes.add_node(
     'mapping',
     {},
     'dataset',
-    dataset_parents=[
-        info_node.get('id'),  # first parent is the data node
-        join_dataset_id,  # second parent is the mapping node
-    ],
+    dataset_parents=[join_dataset_id],
+    imageset_parents=[annotation_score_node.get('id')],
     name="annotation score mapping ds"
 )
 mapping_node = resp.get('dataset')
