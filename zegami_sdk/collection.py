@@ -46,10 +46,12 @@ class Collection():
         self.allow_caching = allow_caching
         self._cached_rows = None
         self._cached_image_meta_lookup = None
+        self._cached_tags = None
 
     def clear_cache(self):
         self._cached_rows = None
         self._cached_image_meta_lookup = None
+        self._cached_tags = None
 
     @property
     def client():
@@ -175,6 +177,19 @@ class Collection():
             self._cached_rows = df
 
         return df
+    
+    @property
+    def tags():
+        pass
+
+    @tags.getter
+    def tags(self):
+        if self.allow_caching and self._cached_tags is not None:
+            return self._cached_tags
+        tags = self.get_tags()
+        if self.allow_caching:
+            self._cached_tags = tags
+        return tags
 
     def get_rows_by_filter(self, filters):
         """Gets rows of metadata in a collection by a flexible filter.
@@ -195,6 +210,21 @@ class Collection():
             if not type(fv) == list:
                 fv = [fv]
             rows = rows[rows[fk].isin(fv)]
+        return rows
+    
+    def get_rows_by_tags(self, tag_names):
+        """Gets rows of metadata in a collection by a list of tag_names.
+
+        Example:
+            tag_names = ['name1', 'name2']
+
+        This would return rows which has tags in the tag_names.
+        """
+        row_indicies = set()
+        for tag in tag_names:
+            if tag in self.tags.keys():
+                row_indicies.update(self.tags[tag])
+        rows = self.rows.iloc[list(row_indicies)]
         return rows
 
     def get_image_urls(self, rows, source=0):
@@ -259,6 +289,23 @@ class Collection():
         for i in range(len(images)):
             ordered.append(images[i])
         return ordered
+    
+    def get_tags(self):
+        """Returns collection tags indicies."""
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}/tags'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id)
+        response = c._auth_get(url)
+        return self._parse_tags(response['tagRecords'])
+
+    def _parse_tags(self, tag_records):
+        """Parses tag indicies into a list of tags, each with an list of indicies."""
+        tags = {}
+        for record in tag_records:
+            if record['tag'] not in tags.keys():
+                tags[record['tag']] = []
+            tags[record['tag']].append(record['key'])
+        return tags
 
     def get_annotations(self, source=None) -> list:
         """Returns all annotations attached to the collection."""
