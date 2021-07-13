@@ -256,8 +256,6 @@ class Collection():
         bytes_tsv = bytes(tsv, 'utf-8')
         mime_type = 'application/octet-stream'
 
-        print(f'Updating collection\'s [id: {self.id}] dataset.\n')
-
         # create blob storage and upload to it
         url, blob_id = zeg_client._create_singed_blob_storage(self.workspace_id)
         zeg_client._upload_to_signed_blob_storage(bytes_tsv, url, mime_type)

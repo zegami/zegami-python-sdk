@@ -118,7 +118,6 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
 
 def _create_singed_blob_storage(self, workspace_id):
     """Create a signed blob storage.
-
     Returns:
         [str]: blob storage url
         [str]: blob storage id
@@ -126,12 +125,9 @@ def _create_singed_blob_storage(self, workspace_id):
     blob_url = f'{self.HOME}/{self.API_1}/project/{workspace_id}/signed_blob_url'
     blob_id = str(uuid.uuid4())
     response = self._auth_post(blob_url, body=None, json={"ids": [blob_id]}, return_response=True)
-    try:
-        data = response.json()
-        url = data[blob_id]
-        return url, blob_id
-    except Exception as ex:
-        print(ex)
+    data = response.json()
+    url = data[blob_id]
+    return url, blob_id
 
 
 def _upload_to_signed_blob_storage(data, url, mime_type, headers=None, **kwargs):
@@ -139,10 +135,8 @@ def _upload_to_signed_blob_storage(data, url, mime_type, headers=None, **kwargs)
     if url.startswith("/"):
         url = f'https://storage.googleapis.com{url}'
     headers = {'Content-Type': mime_type}
+    # this header is required for the azure blob storage https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
-    try:
-        response = requests.put(url, data=data, headers=headers, **kwargs)
-        assert response.status_code == 201
-    except Exception as ex:
-        print(ex)
+    response = requests.put(url, data=data, headers=headers, **kwargs)
+    assert response.status_code == 201
