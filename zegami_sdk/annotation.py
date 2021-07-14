@@ -7,9 +7,10 @@ Apache 2.0
 import base64
 import io
 import os
-
 import numpy as np
 from PIL import Image
+
+from zegami_ai.mrcnn.utils import get_bool_mask_bounds
 
 
 class _Annotation():
@@ -17,6 +18,7 @@ class _Annotation():
 
     # Define the string annotation TYPE in child classes
     TYPE = None
+    UPLOADABLE_DESCRIPTION = None
 
     def __init__(self, collection, annotation_data, source=None):
         """!! STOP !! Instantiate a non-hidden subclass instead.
@@ -80,8 +82,9 @@ class _Annotation():
     def create_uploadable(cls) -> None:
         """Extend in children to include actual annotation data."""
         return {
-            'type': cls.TYPE,
-            'data': None,
+            'type' : cls.TYPE,
+            'format' : None,
+            'annotation' : None
         }
 
     def view(self):
@@ -98,7 +101,9 @@ class AnnotationMask(_Annotation):
     obtained automatically, but this is slow and can cause unnecessary
     re-downloading of data. """
 
-    TYPE = 'mask_1UC1'
+    TYPE = 'mask'
+    UPLOADABLE_DESCRIPTION = 'Mask annotation data includes the actual mask (as a base64 '\
+        'encoded string), a width and a height.'
 
     def __init__(
         self, collection, row_index, source=None, from_filepath=None,
@@ -108,7 +113,7 @@ class AnnotationMask(_Annotation):
         from_filepath, from_url, imageset_id, image_index)
 
     @classmethod
-    def create_uploadable(cls, bool_mask):
+    def create_uploadable(cls, bool_mask, class_id):
         """Creates a data package ready to be uploaded with a collection's .upload_annotation().
 
         Note: The output of this is NOT an annotation, it is used to upload
@@ -133,15 +138,29 @@ class AnnotationMask(_Annotation):
         byte_data = mask_buffer.getvalue()
         mask_b64 = base64.b64encode(byte_data)
         mask_string = "data:image/png;base64,{}".format(mask_b64.decode("utf-8"))
+        bounds = get_bool_mask_bounds(bool_mask)
+        roi = {
+            'xmin' : int(bounds['left']),
+            'xmax' : int(bounds['right']),
+            'ymin' : int(bounds['top']),
+            'ymax' : int(bounds['bottom']),
+            'width' : int(bounds['right'] - bounds['left']),
+            'height' : int(bounds['bottom'] - bounds['top'])
+        }
+        
+        data = {
+            'mask' : mask_string,
+            'width' : int(w),
+            'height' : int(h),
+            'score' : None,
+            'roi' : roi
+        }
 
         uploadable = super().create_uploadable()
-
-        # TODO ensure this matches the required schema
-        uploadable['annotation'] = {
-            'mask': mask_string,
-            'width': w,
-            'height': h,
-        }
+        uploadable['format'] = '1UC1'
+        uploadable['annotation'] = data
+        uploadable['class_id'] = int(class_id)
+        
         return uploadable
 
     def view(self):

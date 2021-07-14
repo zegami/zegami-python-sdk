@@ -10,3 +10,4 @@ Pillow
 requests
 twine
 xlrd
+libmagic
