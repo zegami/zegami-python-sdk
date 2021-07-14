@@ -87,6 +87,17 @@ class ZegamiClient():
         assert 'name' in self._user_info.keys(),\
             'Couldn\'t find \'name\' in user_info: {}'.format(self._user_info)
         return self._user_info['name']
+    
+    @property
+    def email():
+        pass
+    
+    @email.getter
+    def email(self):
+        assert self._user_info, 'Trying to get email from a non-existent user_info'
+        assert 'email' in self._user_info.keys(),\
+            'Couldn\'t find \'email\' in user_info: {}'.format(self._user_info)
+        return self._user_info['email']
 
     @property
     def workspaces():
