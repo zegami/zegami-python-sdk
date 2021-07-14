@@ -10,8 +10,6 @@ import os
 import numpy as np
 from PIL import Image
 
-from zegami_ai.mrcnn.utils import get_bool_mask_bounds
-
 
 class _Annotation():
     """Base (abstract) class for annotations."""
@@ -138,7 +136,7 @@ class AnnotationMask(_Annotation):
         byte_data = mask_buffer.getvalue()
         mask_b64 = base64.b64encode(byte_data)
         mask_string = "data:image/png;base64,{}".format(mask_b64.decode("utf-8"))
-        bounds = get_bool_mask_bounds(bool_mask)
+        bounds = cls.get_bool_mask_bounds(bool_mask)
         roi = {
             'xmin' : int(bounds['left']),
             'xmax' : int(bounds['right']),
@@ -198,3 +196,36 @@ class AnnotationMask(_Annotation):
         assert os.path.exists(local_fp), 'File not found: {}'.format(local_fp)
         assert os.path.isfile(local_fp), 'Path is not a file: {}'.format(local_fp)
         arr = np.array(Image.open(local_fp), dtype='uint8')
+    
+    @staticmethod
+    def parse_bool_masks(bool_masks):
+        ''' Checks the masks for correct data types, and ensures a shape of
+        [h, w, N]. '''
+        
+        assert type(bool_masks) == np.ndarray,\
+            'Expected bool_masks to be a numpy array, not {}'.format(type(bool_masks))
+            
+        assert bool_masks.dtype == bool,\
+            'Expected bool_masks to have dtype == bool, not {}'.format(bool_masks.dtype)
+            
+        # If there is only one mask with no third shape value, insert one
+        if len(bool_masks.shape) == 2:
+            bool_masks = np.expand_dims(bool_masks, -1)
+            
+        return bool_masks
+    
+    @classmethod
+    def get_bool_mask_bounds(cls, bool_mask):
+        
+        bool_mask = cls.parse_bool_masks(bool_mask)[:,:,0]
+        
+        rows = np.any(bool_mask, axis=1)
+        cols = np.any(bool_mask, axis=0)
+        
+        try:
+            top, bottom = np.where(rows)[0][[0, -1]]
+            left, right = np.where(cols)[0][[0, -1]]
+        except:
+            top, bottom, left, right = 0, 0, 0, 0
+        
+        return { 'top' : top, 'bottom' : bottom, 'left' : left, 'right' : right }
