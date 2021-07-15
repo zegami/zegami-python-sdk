@@ -187,7 +187,7 @@ class Collection():
     def tags(self):
         if self.allow_caching and self._cached_tags is not None:
             return self._cached_tags
-        tags = self.get_tags()
+        tags = self._get_tag_indices()
         if self.allow_caching:
             self._cached_tags = tags
         return tags
@@ -221,6 +221,9 @@ class Collection():
 
         This would return rows which has tags in the tag_names.
         """
+        assert type(tag_names) == list,\
+        'Expected tag_names to be a list, not a {}'.format(type(tag_names))
+
         row_indicies = set()
         for tag in tag_names:
             if tag in self.tags.keys():
@@ -291,7 +294,7 @@ class Collection():
             ordered.append(images[i])
         return ordered
     
-    def get_tags(self):
+    def _get_tag_indices(self):
         """Returns collection tags indicies."""
         c = self.client
         url = '{}/{}/project/{}/collections/{}/tags'.format(
