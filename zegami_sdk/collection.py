@@ -235,10 +235,11 @@ class Collection():
             c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
             i) for i in imageset_indices]
 
-    def replace_data(self, data):
+    def replace_data(self, data, sheet_name=0):
         """Replaces the data in the collection.
 
-        The provided input should be a pandas dataframe or a local csv/tsv file.
+        The provided input should be a pandas dataframe or a local csv/tsv/xlsx file.
+        Data will be fetched from the default sheet of a xlsx file if sheet_name is not provided.
         """
         tsv = ''
         name = ''
@@ -247,9 +248,16 @@ class Collection():
             name = 'provided_as_dataframe.tsv'
         else:
             name = os.path.split(data)[-1]
-            assert name.split('.')[-1] in ['tsv', 'csv']
-            with open(data, 'r') as f:
-                tsv = f.read()
+            if (file_ext := name.split('.')[-1]) in ['tsv', 'csv']:
+                with open(data, 'r') as f:
+                    tsv = f.read()
+            elif file_ext in ['xls', 'xlsx']:
+                # Not setting the extension to tsv results in error in processing
+                name = name + '.tsv'
+                xlsx_to_pd = pd.read_excel(data, sheet_name=sheet_name)
+                tsv = xlsx_to_pd.to_csv(sep='\t', index=False)
+            else:
+                raise ValueError("File extension must be .csv or .txt or .xlsx")
 
         zeg_client = self.client
         upload_dataset_url = f'{zeg_client.HOME}/{zeg_client.API_0}/project/{self.workspace_id}/datasets/{self._upload_dataset_id}'
@@ -257,8 +265,8 @@ class Collection():
         mime_type = 'application/octet-stream'
 
         # create blob storage and upload to it
-        url, blob_id = zeg_client._create_singed_blob_storage(self.workspace_id)
-        zeg_client._upload_to_signed_blob_storage(bytes_tsv, url, mime_type)
+        url, blob_id = zeg_client._obtain_signed_blob_storage_url(self.workspace_id)
+        zeg_client._upload_to_signed_blob_storage_url(bytes_tsv, url, mime_type)
 
         # update the upload dataset details
         current_dataset = zeg_client._auth_get(upload_dataset_url)["dataset"]

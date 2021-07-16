@@ -116,8 +116,8 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
     return r if return_response else r.json()
 
 
-def _create_singed_blob_storage(self, workspace_id):
-    """Create a signed blob storage.
+def _obtain_signed_blob_storage_url(self, workspace_id):
+    """Obtain a signed blob storage url.
     Returns:
         [str]: blob storage url
         [str]: blob storage id
@@ -130,8 +130,8 @@ def _create_singed_blob_storage(self, workspace_id):
     return url, blob_id
 
 
-def _upload_to_signed_blob_storage(data, url, mime_type, headers=None, **kwargs):
-    """Upload data to an already create blob storage."""
+def _upload_to_signed_blob_storage_url(data, url, mime_type, headers=None, **kwargs):
+    """Upload data to an already obtained blob storage url."""
     if url.startswith("/"):
         url = f'https://storage.googleapis.com{url}'
     headers = {'Content-Type': mime_type}
