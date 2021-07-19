@@ -95,7 +95,7 @@ class Workspace():
             try:
                 mime_type = magic.from_buffer(data, mime=True)
             except TypeError:
-                mime_type = 'application/octet'
+                mime_type = 'application/octet-stream'
 
         # get signed url to use signature
         client = self._client
