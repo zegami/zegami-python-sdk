@@ -21,8 +21,8 @@ setup(
     include_package_data=True,
     install_requires=[
         'azure-storage-blob',
-        'python-magic',
-        'python-magic-bin; platform_system=="Windows"',
+        'python-magic; sys_platform=="linux"',
+        'python-magic-bin; platform_system=="Windows" or sys_platform=="darwin"',
         'colorama',
         'importlib-metadata',
         'keyring',
