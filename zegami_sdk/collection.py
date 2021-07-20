@@ -9,6 +9,7 @@ import pandas as pd
 from PIL import Image
 from time import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
 
 from .source import Source
 from .annotation import _Annotation
@@ -46,10 +47,12 @@ class Collection():
         self.allow_caching = allow_caching
         self._cached_rows = None
         self._cached_image_meta_lookup = None
+        self._cached_tags = None
 
     def clear_cache(self):
         self._cached_rows = None
         self._cached_image_meta_lookup = None
+        self._cached_tags = None
 
     @property
     def client():
@@ -175,6 +178,19 @@ class Collection():
             self._cached_rows = df
 
         return df
+    
+    @property
+    def tags():
+        pass
+
+    @tags.getter
+    def tags(self):
+        if self.allow_caching and self._cached_tags is not None:
+            return self._cached_tags
+        tags = self._get_tag_indices()
+        if self.allow_caching:
+            self._cached_tags = tags
+        return tags
 
     def get_rows_by_filter(self, filters):
         """Gets rows of metadata in a collection by a flexible filter.
@@ -195,6 +211,24 @@ class Collection():
             if not type(fv) == list:
                 fv = [fv]
             rows = rows[rows[fk].isin(fv)]
+        return rows
+    
+    def get_rows_by_tags(self, tag_names):
+        """Gets rows of metadata in a collection by a list of tag_names.
+
+        Example:
+            tag_names = ['name1', 'name2']
+
+        This would return rows which has tags in the tag_names.
+        """
+        assert type(tag_names) == list,\
+        'Expected tag_names to be a list, not a {}'.format(type(tag_names))
+
+        row_indicies = set()
+        for tag in tag_names:
+            if tag in self.tags.keys():
+                row_indicies.update(self.tags[tag])
+        rows = self.rows.iloc[list(row_indicies)]
         return rows
 
     def get_image_urls(self, rows, source=0):
@@ -259,6 +293,23 @@ class Collection():
         for i in range(len(images)):
             ordered.append(images[i])
         return ordered
+    
+    def _get_tag_indices(self):
+        """Returns collection tags indicies."""
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}/tags'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id)
+        response = c._auth_get(url)
+        return self._parse_tags(response['tagRecords'])
+
+    def _parse_tags(self, tag_records):
+        """Parses tag indicies into a list of tags, each with an list of indicies."""
+        tags = {}
+        for record in tag_records:
+            if record['tag'] not in tags.keys():
+                tags[record['tag']] = []
+            tags[record['tag']].append(record['key'])
+        return tags
 
     def get_annotations(self, source=None) -> list:
         """Returns all annotations attached to the collection."""
@@ -290,7 +341,7 @@ class Collection():
 
     def upload_annotation(
             self, uploadable, row_index=None, image_index=None, source=None,
-            origin={'author': 'user', 'date': None}):
+            author=None, debug=False):
         """Uploads an annotation to Zegami.
 
         Requires uploadable annotation data (see AnnotationClass.create_uploadable), the row index of
@@ -298,14 +349,14 @@ class Collection():
         multi-image-source collection). If no source is provided, it will be
         uploaded to the first source.
 
-        Optionally provide an origin dictionary to detail information about
-        the upload. For example, if generating annotations using inference,
-        it is a good idea to declare 'author' : 'inference', and a 'model'
-        key.
+        Optionally provide an author, which for an inference result should
+        probably some identifier for the model. If nothing is provided, the
+        ZegamiClient's .name property will be used.
         """
         source = None if self.version == 1 else self._parse_source(source)
         imageset_id = self._get_imageset_id(source)
         image_meta_lookup = self._get_image_meta_lookup(source)
+        author = author or self.client.email
 
         if image_index is None:
             assert row_index is not None,\
@@ -327,19 +378,30 @@ class Collection():
         # Get the class-specific data to upload
         payload = {
             'imageset_id': imageset_id,
-            'image_index': image_index,
+            'image_index': int(image_index),
+            'author' : author,
+            'class_id' : int(uploadable['class_id']),
             'type': uploadable['type'],
+            'format' : uploadable['format'],
             'annotation': uploadable['annotation'],
         }
 
         # Check that there are no missing fields in the payload
         for k, v in payload.items():
             assert v, 'Empty annotation uploadable data value for \'{}\''.format(k)
+            
+        # Potentially print for debugging purposes
+        if debug:
+            print('\nupload_annotation payload:\n')
+            for k, v in payload.items():
+                print('{} : {}'.format(k, v))
+            print('\nJSON:\n{}'.format(json.dumps(payload)))
 
+        # POST
         c = self.client
         url = '{}/{}/project/{}/annotations/'.format(
             c.HOME, c.API_1, self.workspace_id)
-        r = c._auth_post(url, payload, return_response=True)
+        r = c._auth_post(url, json.dumps(payload), return_response=True)
 
         return r
 
