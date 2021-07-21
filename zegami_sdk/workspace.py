@@ -12,9 +12,8 @@ from azure.storage.blob import (
     ContentSettings,
 )
 
-import magic
-
 from .collection import Collection
+from .helper import guess_data_mimetype
 
 
 class Workspace():
@@ -91,11 +90,9 @@ class Workspace():
         return io.BytesIO(resp.content), resp.headers.get('content-type')
 
     def create_storage_item(self, data, mime_type=None):
+
         if not mime_type:
-            try:
-                mime_type = magic.from_buffer(data, mime=True)
-            except TypeError:
-                mime_type = 'application/octet-stream'
+            mime_type =  guess_data_mimetype(data)
 
         # get signed url to use signature
         client = self._client
