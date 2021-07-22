@@ -100,7 +100,7 @@ class Collection():
     def _upload_dataset_id():
         pass
 
-    @_dataset_id.getter
+    @_dataset_id.getter  # noqa: F811
     def _upload_dataset_id(self) -> str:
         self._check_data()
         assert 'upload_dataset_id' in self._data.keys(),\
@@ -289,7 +289,10 @@ class Collection():
                 raise ValueError("File extension must one of these: csv, json, tsv, txt, xls, xlsx")
 
         zeg_client = self.client
-        upload_dataset_url = f'{zeg_client.HOME}/{zeg_client.API_0}/project/{self.workspace_id}/datasets/{self._upload_dataset_id}'
+        upload_dataset_url = (
+            f"{zeg_client.HOME}/{zeg_client.API_0}/project/"
+            f"{self.workspace_id}/datasets/{self._upload_dataset_id}"
+        )
         mime_type = 'application/octet-stream'
 
         # create blob storage and upload to it

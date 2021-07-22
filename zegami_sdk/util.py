@@ -135,7 +135,8 @@ def _upload_to_signed_blob_storage_url(data, url, mime_type, headers=None, **kwa
     if url.startswith("/"):
         url = f'https://storage.googleapis.com{url}'
     headers = {'Content-Type': mime_type}
-    # this header is required for the azure blob storage https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
+    # this header is required for the azure blob storage
+    # https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
     response = requests.put(url, data=data, headers=headers, **kwargs)

@@ -1,0 +1,35 @@
+name: zegami python sdk build
+on:
+  workflow_dispatch:
+    branches:
+      - main
+    inputs:
+      version:
+        description: 'Version number'
+        required: true
+        default: '0.0.0-devci'
+  push:
+    paths:
+    - "**"
+jobs:
+  package:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - run: make build
+    - name: Set SDK_PRODUCTION_BUILD on if main branch
+      if: endsWith(github.ref, '/main')
+      run: |
+        echo "::set-env name=SDK_PRODUCTION_BUILD::on"
+    - run: make package
+      env:
+        ZEGAMI_SDK_VERSION: ${{ github.event.inputs.version }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: wheel
+        path: dist/*.whl
+    - uses: actions/upload-artifact@v2
+      with:
+        name: archive
+        path: dist/*.tar.gz
+    - run: make lint
