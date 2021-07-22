@@ -17,13 +17,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: make build
-    - name: Set SDK_PRODUCTION_BUILD on if main branch
-      if: endsWith(github.ref, '/main')
-      run: |
-        echo "::set-env name=SDK_PRODUCTION_BUILD::on"
-    - run: make package
+    - name: Make main branch build
+      run: make package
       env:
         ZEGAMI_SDK_VERSION: ${{ github.event.inputs.version }}
+        SDK_PRODUCTION_BUILD: 'true'
+      if: github.ref == 'refs/heads/main'
+    - name: Make dev branch build
+      run: make package
+      env:
+        ZEGAMI_SDK_VERSION: ${{ github.event.inputs.version }}
+      if: github.ref != 'refs/heads/main'
     - uses: actions/upload-artifact@v2
       with:
         name: wheel
@@ -32,4 +36,9 @@ jobs:
       with:
         name: archive
         path: dist/*.tar.gz
+
+  lint:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
     - run: make lint
