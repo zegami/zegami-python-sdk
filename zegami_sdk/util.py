@@ -7,6 +7,7 @@ Created on Fri Apr 23 16:37:17 2021.
 
 import os
 from pathlib import Path
+import uuid
 
 import requests
 
@@ -95,10 +96,8 @@ def _auth_delete(self, url, **kwargs):
 
 def _auth_post(self, url, body, return_response=False, **kwargs):
     """Syncronous POST request. Used as standard over async currently.
-
     If return_response == True, the response object is returned rather than
     its .json() output.
-
     Any additional kwargs are forwarded onto the requests.post().
     """
     r = requests.post(url, body, headers=self.headers, **kwargs)
@@ -108,12 +107,36 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
 
 def _auth_put(self, url, body, return_response=False, **kwargs):
     """Syncronous PUT request. Used as standard over async currently.
-
     If return_response == True, the response object is returned rather than
     its .json() output.
-
     Any additional kwargs are forwarded onto the requests.put().
     """
     r = requests.put(url, body, headers=self.headers, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
+
+
+def _obtain_signed_blob_storage_url(self, workspace_id):
+    """Obtain a signed blob storage url.
+    Returns:
+        [str]: blob storage url
+        [str]: blob storage id
+    """
+    blob_url = f'{self.HOME}/{self.API_1}/project/{workspace_id}/signed_blob_url'
+    blob_id = str(uuid.uuid4())
+    response = self._auth_post(blob_url, body=None, json={"ids": [blob_id]}, return_response=True)
+    data = response.json()
+    url = data[blob_id]
+    return url, blob_id
+
+
+def _upload_to_signed_blob_storage_url(data, url, mime_type, headers=None, **kwargs):
+    """Upload data to an already obtained blob storage url."""
+    if url.startswith("/"):
+        url = f'https://storage.googleapis.com{url}'
+    headers = {'Content-Type': mime_type}
+    # this header is required for the azure blob storage https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
+    if 'windows.net' in url:
+        headers['x-ms-blob-type'] = 'BlockBlob'
+    response = requests.put(url, data=data, headers=headers, **kwargs)
+    assert response.status_code == 201

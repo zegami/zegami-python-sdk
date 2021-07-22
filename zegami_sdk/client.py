@@ -13,7 +13,9 @@ from .util import (
     _auth_delete,
     _ensure_token,
     _get_token,
-    _check_status
+    _check_status,
+    _obtain_signed_blob_storage_url,
+    _upload_to_signed_blob_storage_url
 )
 
 
@@ -44,6 +46,8 @@ class ZegamiClient():
     _ensure_token = _ensure_token
     _get_token = classmethod(_get_token)
     _check_status = staticmethod(_check_status)
+    _obtain_signed_blob_storage_url = _obtain_signed_blob_storage_url
+    _upload_to_signed_blob_storage_url = staticmethod(_upload_to_signed_blob_storage_url)
 
     def __init__(self, username=None, password=None, token=None, allow_save_token=True):
         # Make sure we have a token

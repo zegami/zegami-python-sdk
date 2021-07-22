@@ -5,6 +5,7 @@ Apache 2.0
 """
 
 from io import BytesIO
+import os
 import pandas as pd
 from PIL import Image
 from time import time
@@ -95,6 +96,17 @@ class Collection():
         assert 'dataset_id' in self._data.keys(),\
             'Collection\'s data didn\'t have a \'dataset_id\' key'
         return self._data['dataset_id']
+
+    @property
+    def _upload_dataset_id():
+        pass
+
+    @_dataset_id.getter
+    def _upload_dataset_id(self) -> str:
+        self._check_data()
+        assert 'upload_dataset_id' in self._data.keys(),\
+            'Collection\'s data didn\'t have a \'upload_dataset_id\' key'
+        return self._data['upload_dataset_id']
 
     @property
     def version():
@@ -256,6 +268,43 @@ class Collection():
         return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
             c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
             i) for i in imageset_indices]
+
+    def replace_data(self, data):
+        """Replaces the data in the collection.
+
+        The provided input should be a pandas dataframe or a local csv/json/tsv/txt/xlsx/xls file.
+        If a xlsx/xls file is used only data from the default sheet will be fetched.
+        """
+        upload_data = ''
+        name = ''
+        if type(data) == pd.DataFrame:
+            tsv = data.to_csv(sep='\t', index=False)
+            upload_data = bytes(tsv, 'utf-8')
+            name = 'provided_as_dataframe.tsv'
+        else:
+            name = os.path.split(data)[-1]
+            if name.split('.')[-1] in ['csv', 'json', 'tsv', 'txt', 'xls', 'xlsx']:
+                with open(data, 'rb') as f:
+                    upload_data = f.read()
+            else:
+                raise ValueError("File extension must one of these: csv, json, tsv, txt, xls, xlsx")
+
+        zeg_client = self.client
+        upload_dataset_url = f'{zeg_client.HOME}/{zeg_client.API_0}/project/{self.workspace_id}/datasets/{self._upload_dataset_id}'
+        mime_type = 'application/octet-stream'
+
+        # create blob storage and upload to it
+        url, blob_id = zeg_client._obtain_signed_blob_storage_url(self.workspace_id)
+        zeg_client._upload_to_signed_blob_storage_url(upload_data, url, mime_type)
+
+        # update the upload dataset details
+        current_dataset = zeg_client._auth_get(upload_dataset_url)["dataset"]
+        current_dataset["source"]["upload"]["name"] = name
+        current_dataset["source"]["blob_id"] = blob_id
+
+        # returning response is true as otherwise it will try to return json but this response is empty
+        zeg_client._auth_put(upload_dataset_url, body=None, return_response=True, json=current_dataset)
+        print(f'Dataset [id: {self._dataset_id}] updated successfully.')
 
     def download_image(self, url):
         """Downloads an image into memory as a PIL.Image.
