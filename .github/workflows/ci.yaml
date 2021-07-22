@@ -33,3 +33,4 @@ jobs:
         name: archive
         path: dist/*.tar.gz
     - run: make lint
+    - run: make test
