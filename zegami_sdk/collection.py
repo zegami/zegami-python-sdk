@@ -12,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 
 from .source import Source
-from .annotation import _Annotation
 
 
 class Collection():
@@ -166,10 +165,10 @@ class Collection():
         # Convert into a pd.DataFrame
         try:
             df = pd.read_csv(tsv_bytes, sep='\t')
-        except:
+        except Exception:
             try:
                 df = pd.read_excel(tsv_bytes)
-            except:
+            except Exception:
                 print('Warning - failed to open metadata as a dataframe, returned '
                       'the tsv bytes instead.')
                 return tsv_bytes
@@ -178,7 +177,7 @@ class Collection():
             self._cached_rows = df
 
         return df
-    
+
     @property
     def tags():
         pass
@@ -212,7 +211,7 @@ class Collection():
                 fv = [fv]
             rows = rows[rows[fk].isin(fv)]
         return rows
-    
+
     def get_rows_by_tags(self, tag_names):
         """Gets rows of metadata in a collection by a list of tag_names.
 
@@ -222,7 +221,7 @@ class Collection():
         This would return rows which has tags in the tag_names.
         """
         assert type(tag_names) == list,\
-        'Expected tag_names to be a list, not a {}'.format(type(tag_names))
+            'Expected tag_names to be a list, not a {}'.format(type(tag_names))
 
         row_indicies = set()
         for tag in tag_names:
@@ -293,7 +292,7 @@ class Collection():
         for i in range(len(images)):
             ordered.append(images[i])
         return ordered
-    
+
     def _get_tag_indices(self):
         """Returns collection tags indicies."""
         c = self.client
@@ -379,17 +378,17 @@ class Collection():
         payload = {
             'imageset_id': imageset_id,
             'image_index': int(image_index),
-            'author' : author,
-            'class_id' : int(uploadable['class_id']),
+            'author': author,
+            'class_id': int(uploadable['class_id']),
             'type': uploadable['type'],
-            'format' : uploadable['format'],
+            'format': uploadable['format'],
             'annotation': uploadable['annotation'],
         }
 
         # Check that there are no missing fields in the payload
         for k, v in payload.items():
             assert v, 'Empty annotation uploadable data value for \'{}\''.format(k)
-            
+
         # Potentially print for debugging purposes
         if debug:
             print('\nupload_annotation payload:\n')

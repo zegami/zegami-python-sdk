@@ -1,5 +1,6 @@
 import sys
 
+
 def guess_data_mimetype(data):
 
     fallback_mimetype = 'application/octet-stream'
@@ -15,7 +16,6 @@ def guess_data_mimetype(data):
             'For Windows check python-magic-bin is installed as a python library\n'
         )
         LIBMAGIC_ENABLED = False
-
 
     if LIBMAGIC_ENABLED:
         try:

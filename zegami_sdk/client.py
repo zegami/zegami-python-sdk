@@ -55,7 +55,7 @@ class ZegamiClient():
         # Welcome message
         try:
             print('\nInitialized successfully, welcome {}.'.format(self.name.split(' ')[0]))
-        except:
+        except Exception:
             pass
 
     @property
@@ -87,11 +87,11 @@ class ZegamiClient():
         assert 'name' in self._user_info.keys(),\
             'Couldn\'t find \'name\' in user_info: {}'.format(self._user_info)
         return self._user_info['name']
-    
+
     @property
     def email():
         pass
-    
+
     @email.getter
     def email(self):
         assert self._user_info, 'Trying to get email from a non-existent user_info'
