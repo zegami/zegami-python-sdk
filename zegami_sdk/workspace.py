@@ -92,7 +92,7 @@ class Workspace():
     def create_storage_item(self, data, mime_type=None):
 
         if not mime_type:
-            mime_type =  guess_data_mimetype(data)
+            mime_type = guess_data_mimetype(data)
 
         # get signed url to use signature
         client = self._client

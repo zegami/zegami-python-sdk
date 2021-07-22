@@ -122,7 +122,7 @@ def create_mask_annotation(mask):
         mask = np.array(Image.open(mask))
 
     elif type(mask) != np.array:
-        raise TypeError('Expected mask to be a str (filepath) or a np array, not {}'\
+        raise TypeError('Expected mask to be a str (filepath) or a np array, not {}'
                         .format(type(mask)))
 
     if len(mask.shape) > 2:

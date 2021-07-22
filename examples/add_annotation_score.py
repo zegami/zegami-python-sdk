@@ -16,7 +16,7 @@ resp = nodes.add_node(
     zc,
     workspace,
     'mask_annotation_score',
-    # truth authors and evaluated authors should either 
+    # truth authors and evaluated authors should either
     # be not specified or a list of strings
     {
         # "evaluated_authors": ["authors name"],

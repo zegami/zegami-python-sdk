@@ -30,7 +30,7 @@ resp = nodes.add_node(
     workspace,
     'image_feature_extraction',
     {
-        
+
     },
     imageset_parents=[scaled_imageset_id],
     type='imageset',
@@ -89,4 +89,3 @@ merge_node = resp.get('dataset')
 print('\nadded merge node', merge_node)
 
 # Update collection to point at output node?
-
