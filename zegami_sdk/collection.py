@@ -16,6 +16,18 @@ from .source import Source
 
 
 class Collection():
+
+    IMAGE_MIMES = {
+        ".bmp": "image/bmp",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+        ".dcm": "application/dicom",
+    }
+
     @staticmethod
     def _construct_collection(client, workspace, collection_dict, allow_caching=True):
         """Use this to instantiate Collection instances.
@@ -344,6 +356,40 @@ class Collection():
         for i in range(len(images)):
             ordered.append(images[i])
         return ordered
+
+    def upload_image(self, path):
+        mime_type = ''
+        file_name = os.path.basename(path)
+        file_ext = os.path.splitext(path)[-1]
+        # Check if the file has a correct extension
+        if file_ext in self.IMAGE_MIMES.keys():
+            mime_type = self.IMAGE_MIMES[file_ext]
+        else:
+            raise ValueError(f"File extension must one of these: {' '.join([key for key in self.IMAGE_MIMES.keys()])}")
+
+        zeg_client = self.client
+
+        with open(path, 'rb') as f:
+            update_image_url = f'{zeg_client.HOME}/{zeg_client.API_0}/project/{self.workspace_id}' \
+                f'/imagesets/{self._get_imageset_id()}/images'
+
+            # create blob storage url and upload the image to it
+            url, blob_id = zeg_client._obtain_signed_blob_storage_url(self.workspace_id)
+            zeg_client._upload_to_signed_blob_storage_url(f, url, mime_type)
+
+            # update the new image details to the relevant endpoint
+            info = {
+                "image": {
+                    "blob_id": blob_id,
+                    "name": file_name,
+                    "size": os.path.getsize(path),
+                    "mimetype": mime_type
+                }
+            }
+            r = zeg_client._auth_post(update_image_url, body=None, return_response=True, json=info)
+
+            if r.status_code == 200:
+                print("Image uploaded successfully")
 
     def _get_tag_indices(self):
         """Returns collection tags indicies."""
