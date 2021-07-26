@@ -298,7 +298,7 @@ class Collection():
                 with open(data, 'rb') as f:
                     upload_data = f.read()
             else:
-                raise ValueError("File extension must one of these: csv, json, tsv, txt, xls, xlsx")
+                raise ValueError("File extension must be one of these: csv, json, tsv, txt, xls, xlsx")
 
         zeg_client = self.client
         upload_dataset_url = (
@@ -357,25 +357,26 @@ class Collection():
             ordered.append(images[i])
         return ordered
 
-    def upload_image(self, path):
-        mime_type = ''
+    def upload_image(self, path, mime_type=None):
         file_name = os.path.basename(path)
         file_ext = os.path.splitext(path)[-1]
+
         # Check if the file has a correct extension
-        if file_ext in self.IMAGE_MIMES.keys():
+        if mime_type:
+            mime_type = mime_type
+        elif file_ext in self.IMAGE_MIMES.keys():
             mime_type = self.IMAGE_MIMES[file_ext]
         else:
-            raise ValueError(f"File extension must one of these: {' '.join([key for key in self.IMAGE_MIMES.keys()])}")
-
-        zeg_client = self.client
+            raise ValueError(
+                f"File extension must be one of these: {' '.join([key for key in self.IMAGE_MIMES.keys()])}")
 
         with open(path, 'rb') as f:
-            update_image_url = f'{zeg_client.HOME}/{zeg_client.API_0}/project/{self.workspace_id}' \
+            add_image_url = f'{self.client.HOME}/{self.client.API_0}/project/{self.workspace_id}' \
                 f'/imagesets/{self._get_imageset_id()}/images'
 
             # create blob storage url and upload the image to it
-            url, blob_id = zeg_client._obtain_signed_blob_storage_url(self.workspace_id)
-            zeg_client._upload_to_signed_blob_storage_url(f, url, mime_type)
+            url, blob_id = self.client._obtain_signed_blob_storage_url(self.workspace_id)
+            self.client._upload_to_signed_blob_storage_url(f, url, mime_type)
 
             # update the new image details to the relevant endpoint
             info = {
@@ -386,9 +387,9 @@ class Collection():
                     "mimetype": mime_type
                 }
             }
-            r = zeg_client._auth_post(update_image_url, body=None, return_response=True, json=info)
+            r = self.client._auth_post(add_image_url, body=None, return_response=True, json=info)
 
-            if r.status_code == 200:
+            if r.ok:
                 print("Image uploaded successfully")
 
     def _get_tag_indices(self):
