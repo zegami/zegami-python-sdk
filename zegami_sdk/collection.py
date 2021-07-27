@@ -47,12 +47,10 @@ class Collection():
         self.allow_caching = allow_caching
         self._cached_rows = None
         self._cached_image_meta_lookup = None
-        self._cached_tags = None
 
     def clear_cache(self):
         self._cached_rows = None
         self._cached_image_meta_lookup = None
-        self._cached_tags = None
 
     @property
     def client():
@@ -196,12 +194,7 @@ class Collection():
 
     @tags.getter
     def tags(self):
-        if self.allow_caching and self._cached_tags is not None:
-            return self._cached_tags
-        tags = self._get_tag_indices()
-        if self.allow_caching:
-            self._cached_tags = tags
-        return tags
+        return self._get_tag_indices()
 
     def get_rows_by_filter(self, filters):
         """Gets rows of metadata in a collection by a flexible filter.
@@ -344,6 +337,20 @@ class Collection():
         for i in range(len(images)):
             ordered.append(images[i])
         return ordered
+    
+    def delete_collection_images(self):
+        """Delete all the images in the collection with the tag 'delete'.s"""
+        row_indicies = set()
+        if 'delete' in self.tags.keys():
+            row_indicies.update(self.tags['delete'])
+            lookup = self._get_image_meta_lookup()
+            imageset_indices = [lookup[int(i)] for i in row_indicies]
+            c = self.client
+            urls = ['{}/{}/project/{}/imagesets/{}/images/{}'.format(
+                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(),
+                i) for i in imageset_indices]
+            for url in urls:
+                c._auth_delete(url)
 
     def _get_tag_indices(self):
         """Returns collection tags indicies."""
