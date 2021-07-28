@@ -351,6 +351,7 @@ class Collection():
                 i) for i in imageset_indices]
             for url in urls:
                 c._auth_delete(url)
+            print(f'Deleted {len(urls)} images')
 
     def _get_tag_indices(self):
         """Returns collection tags indicies."""
