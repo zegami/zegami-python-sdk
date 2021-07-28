@@ -338,11 +338,11 @@ class Collection():
             ordered.append(images[i])
         return ordered
     
-    def delete_collection_images(self):
+    def delete_images_with_tag(self, tag='delete'):
         """Delete all the images in the collection with the tag 'delete'.s"""
         row_indicies = set()
-        if 'delete' in self.tags.keys():
-            row_indicies.update(self.tags['delete'])
+        if tag in self.tags.keys():
+            row_indicies.update(self.tags[tag])
             lookup = self._get_image_meta_lookup()
             imageset_indices = [lookup[int(i)] for i in row_indicies]
             c = self.client
