@@ -202,6 +202,10 @@ class Collection():
 
         return df
 
+    @rows.setter
+    def rows(self, rows):
+        self._cached_rows = rows
+
     @property
     def tags():
         pass
@@ -358,6 +362,10 @@ class Collection():
         return ordered
 
     def upload_image(self, path, mime_type=None):
+        """Upload a new image to the collection, optionally a mime type can be provided.
+
+        Currently this works for image only collections.
+        """
         file_name = os.path.basename(path)
         file_ext = os.path.splitext(path)[-1]
 
@@ -391,6 +399,28 @@ class Collection():
 
             if r.ok:
                 print("Image uploaded successfully")
+
+    def append_image_with_data(self, image_path, data, mime_type=None):
+        """Append an image and a data row to the collection.
+
+        The data should be provided as a list, dict or pd.DataFrame."""
+        if type(data) == list:
+            if len(data) != len(self.rows.columns):
+                raise ValueError('The provided data does not match the number of columns in the collection!')
+            # This is done in order to have the correct index for the row
+            self.rows.loc[len(self.rows)] = data
+        elif type(data) in [dict, pd.DataFrame]:
+            if type(data) == dict:
+                data = pd.DataFrame([data], columns=data.keys())
+            if [key for key in data.columns] != [col for col in self.rows.columns]:
+                raise ValueError('The provided data does not match the columns in the collection!')
+            # Ignoring index in order for it to be recalculated
+            self.rows = pd.concat([self.rows, data], ignore_index=True)
+        else:
+            raise ValueError('The provided data type must be one of: list, dict or pd.DataFrame!')
+
+        self.replace_data(self.rows)
+        self.upload_image(image_path, mime_type=mime_type)
 
     def _get_tag_indices(self):
         """Returns collection tags indicies."""
