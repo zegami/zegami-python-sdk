@@ -245,11 +245,11 @@ class Collection():
     def get_image_urls(self, rows, source=0, generate_signed_urls=False):
         """Converts rows into their corresponding image URLs.
 
-        If generate_signed_urls is false, 
-        the URLs can be used for download_image()/download_image_batch().
+        If generate_signed_urls is false the URLs require a token to download
+        These urls can be passed to download_image()/download_image_batch().
 
-        If generate_signed_urls is true,
-        the signed urls can be used for downloading the original images in blob store. 
+        If generate_signed_urls is true the urls can be used to fetch the images directly
+        from blob storage, using a temporary access signature.
         """
         # Turn the provided 'rows' into a list of ints
         if type(rows) == pd.DataFrame:
