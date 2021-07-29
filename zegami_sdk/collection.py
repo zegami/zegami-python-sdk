@@ -242,10 +242,14 @@ class Collection():
         rows = self.rows.iloc[list(row_indicies)]
         return rows
 
-    def get_image_urls(self, rows, source=0):
+    def get_image_urls(self, rows, source=0, generate_signed_urls=False):
         """Converts rows into their corresponding image URLs.
 
-        You can use these URLs with download_image()/download_image_batch().
+        If generate_signed_urls is false the URLs require a token to download
+        These urls can be passed to download_image()/download_image_batch().
+
+        If generate_signed_urls is true the urls can be used to fetch the images directly
+        from blob storage, using a temporary access signature.
         """
         # Turn the provided 'rows' into a list of ints
         if type(rows) == pd.DataFrame:
@@ -264,9 +268,19 @@ class Collection():
 
         # Convert these into URLs
         c = self.client
-        return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
+        if not generate_signed_urls:
+            return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
+                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
+                i) for i in imageset_indices]
+        else:
+            get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route'.format(
             c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
             i) for i in imageset_indices]
+            signed_route_urls = []
+            for url in get_signed_urls:
+                response = c._auth_get(url)
+                signed_route_urls.append(response['url'])
+            return signed_route_urls
 
     def replace_data(self, data):
         """Replaces the data in the collection.
