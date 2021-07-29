@@ -362,10 +362,8 @@ class Collection():
             tags[record['tag']].append(record['key'])
         return tags
 
-    def get_annotations(self, source=None) -> list:
+    def get_annotations(self) -> dict:
         """Returns all annotations attached to the collection."""
-        if source is not None:
-            self._source_warning()
 
         c = self.client
         url = '{}/{}/project/{}/annotations/collection/{}'.format(
@@ -390,9 +388,8 @@ class Collection():
 
         return c._auth_get(url)
 
-    def upload_annotation(
-            self, uploadable, row_index=None, image_index=None, source=None,
-            author=None, debug=False):
+    def upload_annotation(self, uploadable, row_index=None, image_index=None,
+                          source=None, author=None, debug=False):
         """Uploads an annotation to Zegami.
 
         Requires uploadable annotation data (see AnnotationClass.create_uploadable), the row index of
@@ -434,12 +431,12 @@ class Collection():
             'annotation': uploadable['annotation'],
             'type': uploadable['type'],
             'format': uploadable['format'],
-            'class_id': int(uploadable['class_id']),
+            'class_id': str(int(uploadable['class_id'])),
         }
 
         # Check that there are no missing fields in the payload
         for k, v in payload.items():
-            assert v, 'Empty annotation uploadable data value for \'{}\''.format(k)
+            assert v is not None, 'Empty annotation uploadable data value for \'{}\''.format(k)
 
         # Potentially print for debugging purposes
         if debug:
@@ -460,6 +457,43 @@ class Collection():
         r = c._auth_post(url, json.dumps(payload), return_response=True)
 
         return r
+    
+    def delete_annotation(self, annotation_id):
+        """ Delete an annotation by its ID. These are obtainable using the
+        get_annotations...() methods. """
+        
+        c = self.client
+        url = '{}/{}/project/{}/annotations/{}'.format(c.HOME, c.API_1,
+            self.workspace_id, annotation_id)
+        payload = { 'author' : c.email }
+        r = c._auth_delete(url, data=json.dumps(payload))
+        
+        return r
+        
+    def delete_all_annotations(self, source=0):
+        """ Deletes all annotations saved to the collection. """
+        
+        # A list of sources of annotations
+        anno_sources = self.get_annotations()['sources']
+        
+        c = 0
+        for i, source in enumerate(anno_sources):
+            
+            # A list of annotation objects
+            annotations = source['annotations']
+            if len(annotations) == 0:
+                continue
+            
+            print('Deleting {} annotations from source {}'.format(len(annotations), i))
+            
+            for j, annotation in enumerate(annotations):
+                self.delete_annotation(annotation['id'])
+                print('\r{}/{}'.format(j+1, len(annotations)), end='', flush=True)
+                c += 1
+            print('')
+                
+        print('Deleted {} annotations from collection "{}"'.format(
+            c, self.name))
     
     @property
     def userdata(): pass
