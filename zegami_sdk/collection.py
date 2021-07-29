@@ -492,7 +492,7 @@ class Collection():
                 c += 1
             print('')
                 
-        print('Deleted {} annotations from collection "{}"'.format(
+        print('\nDeleted {} annotations from collection "{}"'.format(
             c, self.name))
     
     @property
