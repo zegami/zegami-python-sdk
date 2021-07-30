@@ -450,13 +450,13 @@ class Collection():
 
         # Get the class-specific data to upload
         payload = {
+            'author': author,
             'imageset_id': imageset_id,
             'image_index': int(image_index),
-            'author': author,
-            'class_id': int(uploadable['class_id']),
+            'annotation': uploadable['annotation'],
             'type': uploadable['type'],
             'format': uploadable['format'],
-            'annotation': uploadable['annotation'],
+            'class_id': int(uploadable['class_id']),
         }
 
         # Check that there are no missing fields in the payload
@@ -467,16 +467,99 @@ class Collection():
         if debug:
             print('\nupload_annotation payload:\n')
             for k, v in payload.items():
-                print('{} : {}'.format(k, v))
+                if k == 'annotation':
+                    print('- annotation:')
+                    for k2, v2 in payload['annotation'].items():
+                        print('\t- {} : {}'.format(k2, v2))
+                else:
+                    print('- {} : {}'.format(k, v))
             print('\nJSON:\n{}'.format(json.dumps(payload)))
 
         # POST
         c = self.client
-        url = '{}/{}/project/{}/annotations/'.format(
+        url = '{}/{}/project/{}/annotations'.format(
             c.HOME, c.API_1, self.workspace_id)
         r = c._auth_post(url, json.dumps(payload), return_response=True)
 
         return r
+    
+    @property
+    def userdata(): pass
+
+    @userdata.getter
+    def userdata(self):
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}'.format(
+            c.HOME, c.API_0, self.workspace_id, self.id)
+        data = c._auth_get(url)['collection']
+        userdata = data['userdata'] if 'userdata' in data.keys() else None
+        return userdata
+    
+    @property
+    def classes(): pass
+
+    @classes.getter
+    def classes(self) -> list:
+        """ Property for the class configuration of the collection. Used in
+        an annotation workflow to tell Zegami how to treat defined classes.
+        
+        To set new classes, provide a list of class dictionaries of shape:
+            
+        collection.classes = [
+            {
+                'color' : '#32a852',    # A hex color for the class
+                'name'  : 'Dog',        # A human-readable identifier for the class
+                'id'    : 0             # The unique integer class ID
+            },
+            {
+                'color' : '#43f821',    # A hex color for the class
+                'name'  : 'Cat',        # A human-readable identifier for the class
+                'id'    : 1             # The unique integer class ID
+            }
+        ]
+        """
+        u = self.userdata
+        return list(u['classes'].values()) if u is not None and 'classes' in u.keys() else []
+    
+    @classes.setter
+    def classes(self, classes):
+        # Check for a valid classes list
+        if type(classes) != list:
+            raise TypeError('Expected \'classes\' to be a list, not {}'\
+                            .format(type(classes)))
+            
+        payload = { 'classes' : {} }
+        
+        for d in classes:
+            
+            # Check for a sensible class dict
+            if type(d) != dict:
+                raise TypeError('Expected \'classes\' entry to be a dict, '\
+                                'not {}'.format(type(d)))
+            if len(d.keys()) != 3:
+                raise ValueError('Expected classes dict to have 3 keys, not '\
+                                 '{} ({})'.format(len(d.keys()), d))
+            for k in ['color', 'name', 'id']:
+                if k not in d.keys():
+                    raise ValueError('Unexpected class key: {}. Keys must be '\
+                                     'color | name | id.'.format(k))
+                        
+            # Format as the expected payload
+            payload['classes'][d['id']] = {
+                'color' : str(d['color']),
+                'name' : str(d['name']),
+                'id' : str(int(d['id']))
+            }
+            
+        # POST
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(
+            c.HOME, c.API_0, self.workspace_id, self.id)
+        c._auth_post(url, json.dumps(payload))
+        
+        print('New classes set:')
+        for d in self.classes:
+            print(d)
 
     def _check_data(self) -> None:
         assert self._data, 'Collection had no self._data set'
@@ -533,7 +616,7 @@ class Collection():
         return self._data['total_data_items']
 
     def __repr__(self) -> str:
-        return "Collection id={} name={}".format(self.id, self.name)
+        return "<Collection id={} name={}>".format(self.id, self.name)
 
 
 class CollectionV2(Collection):
@@ -612,3 +695,6 @@ class CollectionV2(Collection):
 
         raise Exception('Provided source was a Source instance, but didn\'t '
                         'belong to this collection ({})'.format(self.name))
+    
+    def __repr__(self) -> str:
+        return "<Collection V2 id={} name={}>".format(self.id, self.name)

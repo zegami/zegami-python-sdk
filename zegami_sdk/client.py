@@ -68,7 +68,10 @@ class ZegamiClient():
 
     @headers.getter
     def headers(self):
-        return {'Authorization': 'Bearer {}'.format(self.token)}
+        return {
+            'Authorization': 'Bearer {}'.format(self.token),
+            'Content-Type' : 'application/json',
+        }
 
     @property
     def user_info():
