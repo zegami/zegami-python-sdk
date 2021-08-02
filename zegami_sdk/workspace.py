@@ -123,6 +123,33 @@ class Workspace():
         resp = c._auth_delete(url)
         return resp.ok
 
+    # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
+    def _create_empty_collection(self, coll_name, desc='', dynamic=False, version=2, **kwargs):
+        """Crete an empty collectin that will be updated with images and data."""
+
+        post_data = {
+            'name': coll_name,
+            'description': desc,
+            'dynamic': dynamic,
+            'upload_dataset': {'source': {'upload': {}}},
+            **kwargs,
+        }
+
+        create_url = f'{self._client.HOME}/{self._client.API_0}/project/{self.id}/collections'
+
+        resp = self._client._auth_post(create_url, body=None, json=post_data)
+
+        return resp['collection']
+
+    def create_collection(self, coll_name, image_dir, data=None, desc='', dynamic=False, version=2, **kwargs):
+        """Create a collection with provided images and data."""
+        coll_details = self._create_empty_collection(coll_name, desc, dynamic=dynamic, version=version, **kwargs)
+        coll = self.get_collection_by_id(coll_details['id'])
+        coll.upload_images(image_dir)
+        if data:
+            coll.replace_data(data)
+        print(f'Collection [id: {coll.id}] created successfully.')
+
     def __len__(self):
         len(self.collections)
 

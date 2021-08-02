@@ -9,13 +9,13 @@ import os
 import pandas as pd
 from PIL import Image
 from time import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .source import Source
 
 
 class Collection():
+
     @staticmethod
     def _construct_collection(client, workspace, collection_dict, allow_caching=True):
         """Use this to instantiate Collection instances.
@@ -149,7 +149,7 @@ class Collection():
     def sources(self):
         if self.version < 2:
             print('{} is an old-style collection and does not support multiple image sources'.format(self.name))
-            return []
+            return [Source(self, self._data)]
 
     def show_sources(self):
         print('{} is an old-style collection and does not support multiple image sources'.format(self.name))
@@ -314,7 +314,9 @@ class Collection():
         mime_type = 'application/octet-stream'
 
         # create blob storage and upload to it
-        url, blob_id = zeg_client._obtain_signed_blob_storage_url(self.workspace_id)
+        urls, id_set = zeg_client._obtain_signed_blob_storage_urls(self.workspace_id)
+        blob_id = id_set['ids'][0]
+        url = urls[blob_id]
         zeg_client._upload_to_signed_blob_storage_url(upload_data, url, mime_type)
 
         # update the upload dataset details
@@ -324,8 +326,12 @@ class Collection():
 
         # returning response is true as otherwise it will try to return json but this response is empty
         zeg_client._auth_put(upload_dataset_url, body=None, return_response=True, json=current_dataset)
+
         self._cached_rows = None
-        print(f'Dataset [id: {self._dataset_id}] updated successfully.')
+        print(f'\nDataset [id: {self._dataset_id}] updated successfully.')
+
+    def upload_images(self, image_dir, mime_type=None, source=0):
+        self.sources[source]._upload_all_images(image_dir, mime_type=mime_type)
 
     def download_image(self, url):
         """Downloads an image into memory as a PIL.Image.
