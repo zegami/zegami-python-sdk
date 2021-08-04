@@ -196,6 +196,16 @@ class Collection():
     def tags(self):
         return self._get_tag_indices()
 
+    @property
+    def status():
+        pass
+
+    @status.getter
+    def status(self):
+        details_url = f'{self.client.HOME}/{self.client.API_0}/project/{self.workspace_id}/collections/{self.id}'
+        resp = self.client._auth_get(details_url)
+        return resp['collection']['status']
+
     def get_rows_by_filter(self, filters):
         """Gets rows of metadata in a collection by a flexible filter.
 
@@ -281,9 +291,9 @@ class Collection():
 
         The provided input should be a pandas dataframe or a local csv/json/tsv/txt/xlsx/xls file.
         If a xlsx/xls file is used only data from the default sheet will be fetched.
+        The rows take time to be updated, hence checking the satus of the collection with coll.status,
+        might be helpful if you need to ensure that you're using the updated data rows.
         """
-        upload_data = ''
-        name = ''
         if type(data) == pd.DataFrame:
             tsv = data.to_csv(sep='\t', index=False)
             upload_data = bytes(tsv, 'utf-8')
@@ -314,6 +324,7 @@ class Collection():
 
         # returning response is true as otherwise it will try to return json but this response is empty
         zeg_client._auth_put(upload_dataset_url, body=None, return_response=True, json=current_dataset)
+        self._cached_rows = None
         print(f'Dataset [id: {self._dataset_id}] updated successfully.')
 
     def download_image(self, url):
