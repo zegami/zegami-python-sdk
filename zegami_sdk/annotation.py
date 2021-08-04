@@ -228,3 +228,16 @@ class AnnotationMask(_Annotation):
             top, bottom, left, right = 0, 0, 0, 0
 
         return {'top': top, 'bottom': bottom, 'left': left, 'right': right}
+    
+    @staticmethod
+    def base64_to_boolmask(b64_data):
+        ''' Converts str base64 annotation data from Zegami into a boolean
+        mask. '''
+        if type(b64_data) is not str:
+            raise TypeError('b64_data should be a str, not {}'.format(type(b64_data)))
+        if b64_data.startswith('data:'):
+            b64_data = b64_data.split(',', 1)[-1]
+        img = Image.open(io.BytesIO(base64.b64decode(b64_data)))
+        arr_int = np.array(np.array(img) * 255, dtype='uint8')
+        return arr_int > 125
+        

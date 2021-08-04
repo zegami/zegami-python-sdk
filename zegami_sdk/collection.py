@@ -274,6 +274,15 @@ class Collection():
                 response = c._auth_get(url)
                 signed_route_urls.append(response['url'])
             return signed_route_urls
+        
+    def download_annotation(self, annotation_id):
+        """ Converts an annotation_id into downloaded annotation data. 
+        This will vary in content depending on the annotation type and
+        format. """
+        zc = self.client
+        url = '{}/{}/project/{}/annotations/{}'.format(
+            zc.HOME, zc.API_1, self.workspace.id, annotation_id)
+        return zc._auth_get(url)
 
     def replace_data(self, data):
         """Replaces the data in the collection.
