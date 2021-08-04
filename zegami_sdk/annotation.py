@@ -240,4 +240,3 @@ class AnnotationMask(_Annotation):
         img = Image.open(io.BytesIO(base64.b64decode(b64_data)))
         arr_int = np.array(np.array(img) * 255, dtype='uint8')
         return arr_int > 125
-        
