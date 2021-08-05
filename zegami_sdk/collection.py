@@ -149,6 +149,7 @@ class Collection():
     def sources(self):
         if self.version < 2:
             print('{} is an old-style collection and does not support multiple image sources'.format(self.name))
+            #  return a constructed pseudo source object in order to provide a consistant interface
             return [Source(self, self._data)]
 
     def show_sources(self):
@@ -238,11 +239,11 @@ class Collection():
         assert type(tag_names) == list,\
             'Expected tag_names to be a list, not a {}'.format(type(tag_names))
 
-        row_indicies = set()
+        row_indices = set()
         for tag in tag_names:
             if tag in self.tags.keys():
-                row_indicies.update(self.tags[tag])
-        rows = self.rows.iloc[list(row_indicies)]
+                row_indices.update(self.tags[tag])
+        rows = self.rows.iloc[list(row_indices)]
         return rows
 
     def get_image_urls(self, rows, source=0, generate_signed_urls=False):
@@ -372,11 +373,11 @@ class Collection():
 
     def delete_images_with_tag(self, tag='delete'):
         """Delete all the images in the collection with the tag 'delete'.s"""
-        row_indicies = set()
+        row_indices = set()
         if tag in self.tags.keys():
-            row_indicies.update(self.tags[tag])
+            row_indices.update(self.tags[tag])
             lookup = self._get_image_meta_lookup()
-            imageset_indices = [lookup[int(i)] for i in row_indicies]
+            imageset_indices = [lookup[int(i)] for i in row_indices]
             c = self.client
             urls = ['{}/{}/project/{}/imagesets/{}/images/{}'.format(
                 c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(),

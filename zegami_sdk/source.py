@@ -96,11 +96,11 @@ class Source():
                 blob_id = id_set["ids"][index]
                 url = urls[blob_id]
 
-                # Make sure the upload isn't interputed for all images
+                # Make sure the upload isn't interrupted for all images
                 try:
                     client._upload_to_signed_blob_storage_url(f, url, mime_type)
                 except Exception as ex:
-                    print('\nAn exception occured: ', ex)
+                    print('\nAn exception occurred: ', ex)
 
                 # update the new image details to the relevant endpoint
                 info = {

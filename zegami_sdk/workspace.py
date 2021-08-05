@@ -125,13 +125,14 @@ class Workspace():
 
     # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
     def _create_empty_collection(self, coll_name, desc='', dynamic=False, version=2, **kwargs):
-        """Crete an empty collectin that will be updated with images and data."""
+        """Crete an empty collection that will be updated with images and data."""
 
         post_data = {
             'name': coll_name,
             'description': desc,
             'dynamic': dynamic,
             'upload_dataset': {'source': {'upload': {}}},
+            'version': version,
             **kwargs,
         }
 
