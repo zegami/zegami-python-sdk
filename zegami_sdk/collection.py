@@ -292,7 +292,7 @@ class Collection():
 
         The provided input should be a pandas dataframe or a local csv/json/tsv/txt/xlsx/xls file.
         If a xlsx/xls file is used only data from the default sheet will be fetched.
-        The rows take time to be updated, hence checking the satus of the collection with coll.status,
+        The rows take time to be updated, hence checking the sataus of the collection with coll.status,
         might be helpful if you need to ensure that you're using the updated data rows.
         """
         if type(data) == pd.DataFrame:
@@ -387,7 +387,7 @@ class Collection():
             print(f'\nDeleted {len(urls)} images')
 
     def _get_tag_indices(self):
-        """Returns collection tags indicies."""
+        """Returns collection tags indices."""
         c = self.client
         url = '{}/{}/project/{}/collections/{}/tags'.format(
             c.HOME, c.API_1, self.workspace_id, self.id)
@@ -395,7 +395,7 @@ class Collection():
         return self._parse_tags(response['tagRecords'])
 
     def _parse_tags(self, tag_records):
-        """Parses tag indicies into a list of tags, each with an list of indicies."""
+        """Parses tag indices into a list of tags, each with an list of indices."""
         tags = {}
         for record in tag_records:
             if record['tag'] not in tags.keys():

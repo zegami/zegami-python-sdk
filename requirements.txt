@@ -12,3 +12,4 @@ requests
 twine
 xlrd
 libmagic
+tqdm
