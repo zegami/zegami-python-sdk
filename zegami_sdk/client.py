@@ -70,7 +70,7 @@ class ZegamiClient():
     def headers(self):
         return {
             'Authorization': 'Bearer {}'.format(self.token),
-            'Content-Type' : 'application/json',
+            'Content-Type': 'application/json',
         }
 
     @property

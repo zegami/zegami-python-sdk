@@ -98,7 +98,7 @@ class Collection():
     def _upload_dataset_id():
         pass
 
-    @_dataset_id.getter  # noqa: F811
+    @_upload_dataset_id.getter
     def _upload_dataset_id(self) -> str:
         self._check_data()
         assert 'upload_dataset_id' in self._data.keys(),\
@@ -267,8 +267,9 @@ class Collection():
                 i) for i in imageset_indices]
         else:
             get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route'.format(
-            c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
-            i) for i in imageset_indices]
+                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
+                i
+            ) for i in imageset_indices]
             signed_route_urls = []
             for url in get_signed_urls:
                 response = c._auth_get(url)
@@ -351,7 +352,7 @@ class Collection():
         for i in range(len(images)):
             ordered.append(images[i])
         return ordered
-    
+
     def delete_images_with_tag(self, tag='delete'):
         """Delete all the images in the collection with the tag 'delete'.s"""
         row_indicies = set()
@@ -479,46 +480,48 @@ class Collection():
         r = c._auth_post(url, json.dumps(payload), return_response=True)
 
         return r
-    
+
     def delete_annotation(self, annotation_id):
         """ Delete an annotation by its ID. These are obtainable using the
         get_annotations...() methods. """
-        
+
         c = self.client
-        url = '{}/{}/project/{}/annotations/{}'.format(c.HOME, c.API_1,
-            self.workspace_id, annotation_id)
-        payload = { 'author' : c.email }
+        url = '{}/{}/project/{}/annotations/{}'.format(c.HOME, c.API_1, self.workspace_id, annotation_id)
+        payload = {
+            'author': c.email
+        }
         r = c._auth_delete(url, data=json.dumps(payload))
-        
+
         return r
-        
+
     def delete_all_annotations(self, source=0):
         """ Deletes all annotations saved to the collection. """
-        
+
         # A list of sources of annotations
         anno_sources = self.get_annotations()['sources']
-        
+
         c = 0
         for i, source in enumerate(anno_sources):
-            
+
             # A list of annotation objects
             annotations = source['annotations']
             if len(annotations) == 0:
                 continue
-            
+
             print('Deleting {} annotations from source {}'.format(len(annotations), i))
-            
+
             for j, annotation in enumerate(annotations):
                 self.delete_annotation(annotation['id'])
-                print('\r{}/{}'.format(j+1, len(annotations)), end='', flush=True)
+                print('\r{}/{}'.format(j + 1, len(annotations)), end='', flush=True)
                 c += 1
             print('')
-                
+
         print('\nDeleted {} annotations from collection "{}"'.format(
             c, self.name))
-    
+
     @property
-    def userdata(): pass
+    def userdata():
+        pass
 
     @userdata.getter
     def userdata(self):
@@ -528,17 +531,18 @@ class Collection():
         data = c._auth_get(url)['collection']
         userdata = data['userdata'] if 'userdata' in data.keys() else None
         return userdata
-    
+
     @property
-    def classes(): pass
+    def classes():
+        pass
 
     @classes.getter
     def classes(self) -> list:
         """ Property for the class configuration of the collection. Used in
         an annotation workflow to tell Zegami how to treat defined classes.
-        
+
         To set new classes, provide a list of class dictionaries of shape:
-            
+
         collection.classes = [
             {
                 'color' : '#32a852',    # A hex color for the class
@@ -554,43 +558,41 @@ class Collection():
         """
         u = self.userdata
         return list(u['classes'].values()) if u is not None and 'classes' in u.keys() else []
-    
+
     @classes.setter
-    def classes(self, classes):
+    def classes(self, classes): # noqa C901
         # Check for a valid classes list
         if type(classes) != list:
-            raise TypeError('Expected \'classes\' to be a list, not {}'\
-                            .format(type(classes)))
-            
-        payload = { 'classes' : {} }
-        
+            raise TypeError('Expected \'classes\' to be a list, not {}'.format(type(classes)))
+
+        payload = {
+            'classes': {}
+        }
+
         for d in classes:
-            
             # Check for a sensible class dict
             if type(d) != dict:
-                raise TypeError('Expected \'classes\' entry to be a dict, '\
-                                'not {}'.format(type(d)))
+                raise TypeError('Expected \'classes\' entry to be a dict, not {}'.format(type(d)))
             if len(d.keys()) != 3:
-                raise ValueError('Expected classes dict to have 3 keys, not '\
-                                 '{} ({})'.format(len(d.keys()), d))
+                raise ValueError('Expected classes dict to have 3 keys, not {} ({})'.format(len(d.keys()), d))
             for k in ['color', 'name', 'id']:
                 if k not in d.keys():
-                    raise ValueError('Unexpected class key: {}. Keys must be '\
+                    raise ValueError('Unexpected class key: {}. Keys must be '
                                      'color | name | id.'.format(k))
-                        
+
             # Format as the expected payload
             payload['classes'][d['id']] = {
-                'color' : str(d['color']),
-                'name' : str(d['name']),
-                'id' : str(int(d['id']))
+                'color': str(d['color']),
+                'name': str(d['name']),
+                'id': str(int(d['id']))
             }
-            
+
         # POST
         c = self.client
         url = '{}/{}/project/{}/collections/{}/userdata'.format(
             c.HOME, c.API_0, self.workspace_id, self.id)
         c._auth_post(url, json.dumps(payload))
-        
+
         print('New classes set:')
         for d in self.classes:
             print(d)
@@ -729,6 +731,6 @@ class CollectionV2(Collection):
 
         raise Exception('Provided source was a Source instance, but didn\'t '
                         'belong to this collection ({})'.format(self.name))
-    
+
     def __repr__(self) -> str:
         return "<Collection V2 id={} name={}>".format(self.id, self.name)
