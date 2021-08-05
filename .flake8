@@ -1,7 +1,7 @@
 [flake8]
 exclude = .git,__pycache__,.idea,build,deps,doc
 ignore = D1,D401,D413,W504
-max_complexity = 7
+max_complexity = 10
 import_order_style = google
 copyright-author = Zegami Ltd\n\n"""
 max_line_length = 120

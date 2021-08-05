@@ -140,4 +140,4 @@ def _upload_to_signed_blob_storage_url(data, url, mime_type, headers=None, **kwa
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
     response = requests.put(url, data=data, headers=headers, **kwargs)
-    assert response.status_code == 201
+    assert response.ok
