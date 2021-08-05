@@ -571,7 +571,7 @@ class Collection():
         return list(u['classes'].values()) if u is not None and 'classes' in u.keys() else []
 
     @classes.setter
-    def classes(self, classes): # noqa C901
+    def classes(self, classes):  # noqa: C901
         # Check for a valid classes list
         if type(classes) != list:
             raise TypeError('Expected \'classes\' to be a list, not {}'.format(type(classes)))
