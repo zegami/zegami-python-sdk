@@ -142,11 +142,30 @@ class Workspace():
 
         return resp['collection']
 
-    def create_collection(self, coll_name, image_dir, data=None, desc='', dynamic=False, version=2, **kwargs):
-        """Create a collection with provided images and data."""
-        coll_details = self._create_empty_collection(coll_name, desc, dynamic=dynamic, version=version, **kwargs)
+    def _get_all_sources_names(self, sources):
+        """Get the names of all sources in a list."""
+        sources_names = []
+        for source in sources:
+            sources_names.append({'name': source['source_name']})
+        return sources_names
+
+    def create_collection(self, coll_name, sources_list, data=None, desc='', dynamic=False, version=2, **kwargs):
+        """Create a collection with provided images and data.
+        Image data should be provided as a list of sources, each item there must contain a dict
+        with the source name and a path to the image directory: [{'source_name': 'name', 'image_dir: 'some/path'}]"""
+        if version == 2:
+            sources_names = self._get_all_sources_names(sources_list)
+            kwargs['image_sources'] = sources_names
+        else:
+            # Make sure the mock source has the correct name
+            sources_list[0]['source_name'] = coll_name
+
+        coll_details = self._create_empty_collection(
+            coll_name, desc, dynamic=dynamic, version=version, **kwargs)
         coll = self.get_collection_by_id(coll_details['id'])
-        coll.upload_images(image_dir)
+
+        for source in sources_list:
+            coll.upload_images(source)
         if data:
             coll.replace_data(data)
         print(f'Collection [id: {coll.id}] created successfully.')

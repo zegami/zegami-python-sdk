@@ -1,7 +1,6 @@
-from zegami_sdk import nodes
 from zegami_sdk.client import ZegamiClient
 
-WORKSPACE_ID = 'tw5Tie2e'
+WORKSPACE_ID = ''
 COLLECTION_ID = ''
 
 zc = ZegamiClient()
