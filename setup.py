@@ -47,6 +47,7 @@ setup(
         'pandas',
         'Pillow',
         'requests',
+        'tqdm',
         'xlrd',
     ],
     python_requires='>=3.6'

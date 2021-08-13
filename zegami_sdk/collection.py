@@ -9,13 +9,13 @@ import os
 import pandas as pd
 from PIL import Image
 from time import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .source import Source
 
 
 class Collection():
+
     @staticmethod
     def _construct_collection(client, workspace, collection_dict, allow_caching=True):
         """Use this to instantiate Collection instances.
@@ -149,7 +149,8 @@ class Collection():
     def sources(self):
         if self.version < 2:
             print('{} is an old-style collection and does not support multiple image sources'.format(self.name))
-            return []
+            #  return a constructed pseudo source object in order to provide a consistant interface
+            return [Source(self, self._data)]
 
     def show_sources(self):
         print('{} is an old-style collection and does not support multiple image sources'.format(self.name))
@@ -238,11 +239,11 @@ class Collection():
         assert type(tag_names) == list,\
             'Expected tag_names to be a list, not a {}'.format(type(tag_names))
 
-        row_indicies = set()
+        row_indices = set()
         for tag in tag_names:
             if tag in self.tags.keys():
-                row_indicies.update(self.tags[tag])
-        rows = self.rows.iloc[list(row_indicies)]
+                row_indices.update(self.tags[tag])
+        rows = self.rows.iloc[list(row_indices)]
         return rows
 
     def get_image_urls(self, rows, source=0, generate_signed_urls=False):
@@ -291,7 +292,7 @@ class Collection():
 
         The provided input should be a pandas dataframe or a local csv/json/tsv/txt/xlsx/xls file.
         If a xlsx/xls file is used only data from the default sheet will be fetched.
-        The rows take time to be updated, hence checking the satus of the collection with coll.status,
+        The rows take time to be updated, hence checking the status of the collection with coll.status,
         might be helpful if you need to ensure that you're using the updated data rows.
         """
         if type(data) == pd.DataFrame:
@@ -314,7 +315,9 @@ class Collection():
         mime_type = 'application/octet-stream'
 
         # create blob storage and upload to it
-        url, blob_id = zeg_client._obtain_signed_blob_storage_url(self.workspace_id)
+        urls, id_set = zeg_client._obtain_signed_blob_storage_urls(self.workspace_id)
+        blob_id = id_set['ids'][0]
+        url = urls[blob_id]
         zeg_client._upload_to_signed_blob_storage_url(upload_data, url, mime_type)
 
         # update the upload dataset details
@@ -324,8 +327,18 @@ class Collection():
 
         # returning response is true as otherwise it will try to return json but this response is empty
         zeg_client._auth_put(upload_dataset_url, body=None, return_response=True, json=current_dataset)
+
         self._cached_rows = None
-        print(f'Dataset [id: {self._dataset_id}] updated successfully.')
+        print(f'\nDataset [id: {self._dataset_id}] updated successfully.')
+
+    def upload_images(self, source_dict, mime_type=None, show_time_taken=True):
+        """Upload images to a collection.
+        Image data should be provided as a dict, containing the
+        source name and a path to the image directory: {'source_name': 'name', 'image_dir: 'some/path'}"""
+        for source in self.sources:
+            if source_dict['source_name'] == source.name:
+                source._upload_all_images(source_dict['image_dir'],
+                                          mime_type=mime_type, show_time_taken=show_time_taken)
 
     def download_image(self, url):
         """Downloads an image into memory as a PIL.Image.
@@ -366,11 +379,11 @@ class Collection():
 
     def delete_images_with_tag(self, tag='delete'):
         """Delete all the images in the collection with the tag 'delete'.s"""
-        row_indicies = set()
+        row_indices = set()
         if tag in self.tags.keys():
-            row_indicies.update(self.tags[tag])
+            row_indices.update(self.tags[tag])
             lookup = self._get_image_meta_lookup()
-            imageset_indices = [lookup[int(i)] for i in row_indicies]
+            imageset_indices = [lookup[int(i)] for i in row_indices]
             c = self.client
             urls = ['{}/{}/project/{}/imagesets/{}/images/{}'.format(
                 c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(),
@@ -380,7 +393,7 @@ class Collection():
             print(f'\nDeleted {len(urls)} images')
 
     def _get_tag_indices(self):
-        """Returns collection tags indicies."""
+        """Returns collection tags indices."""
         c = self.client
         url = '{}/{}/project/{}/collections/{}/tags'.format(
             c.HOME, c.API_1, self.workspace_id, self.id)
@@ -388,7 +401,7 @@ class Collection():
         return self._parse_tags(response['tagRecords'])
 
     def _parse_tags(self, tag_records):
-        """Parses tag indicies into a list of tags, each with an list of indicies."""
+        """Parses tag indices into a list of tags, each with an list of indices."""
         tags = {}
         for record in tag_records:
             if record['tag'] not in tags.keys():
