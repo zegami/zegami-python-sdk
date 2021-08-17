@@ -41,7 +41,6 @@ setup(
         'colorama',
         'importlib-metadata',
         'keyring',
-        'twine',
         'pathlib',
         'numpy',
         'pandas',
@@ -49,6 +48,7 @@ setup(
         'requests',
         'tqdm',
         'xlrd',
+        'urllib3'
     ],
     python_requires='>=3.6'
 )
