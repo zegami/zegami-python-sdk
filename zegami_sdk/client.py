@@ -11,6 +11,7 @@ from .util import (
     _auth_post,
     _auth_put,
     _auth_delete,
+    _create_session,
     _ensure_token,
     _get_token,
     _check_status,
@@ -43,15 +44,20 @@ class ZegamiClient():
     _auth_post = _auth_post
     _auth_put = _auth_put
     _auth_delete = _auth_delete
+    _create_session = _create_session
     _ensure_token = _ensure_token
     _get_token = classmethod(_get_token)
     _check_status = staticmethod(_check_status)
     _obtain_signed_blob_storage_urls = _obtain_signed_blob_storage_urls
     _upload_to_signed_blob_storage_url = staticmethod(_upload_to_signed_blob_storage_url)
+    _session = None
 
     def __init__(self, username=None, password=None, token=None, allow_save_token=True):
         # Make sure we have a token
         self._ensure_token(username, password, token, allow_save_token)
+
+        # Initialise a requests session
+        self.session = self.
 
         # Get user info, workspaces
         self._refresh_client()
@@ -61,17 +67,6 @@ class ZegamiClient():
             print('\nInitialized successfully, welcome {}.'.format(self.name.split(' ')[0]))
         except Exception:
             pass
-
-    @property
-    def headers():
-        pass
-
-    @headers.getter
-    def headers(self):
-        return {
-            'Authorization': 'Bearer {}'.format(self.token),
-            'Content-Type': 'application/json',
-        }
 
     @property
     def user_info():

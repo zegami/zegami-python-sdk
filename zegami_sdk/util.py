@@ -11,6 +11,14 @@ import uuid
 
 import requests
 
+def _create_session(self):
+    """Create a session object to ensure auth token is included as appropriate."""
+    s = requests.Session()
+    s.headers.update({
+        'Authorization': 'Bearer {}'.format(self.token),
+        'Content-Type': 'application/json',
+    })
+
 
 def _ensure_token(self, username, password, token, allow_save_token):
     """Tries the various logical steps to ensure a login token is set.
@@ -79,7 +87,7 @@ def _auth_get(self, url, return_response=False, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.get().
     """
-    r = requests.get(url, headers=self.headers, **kwargs)
+    r = self._session.get(url, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -89,7 +97,7 @@ def _auth_delete(self, url, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.delete().
     """
-    resp = requests.delete(url, headers=self.headers, **kwargs)
+    resp = self._session.delete(url, **kwargs)
     self._check_status(resp, is_async_request=False)
     return resp
 
@@ -100,7 +108,7 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
     its .json() output.
     Any additional kwargs are forwarded onto the requests.post().
     """
-    r = requests.post(url, body, headers=self.headers, **kwargs)
+    r = self._session.post(url, body, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -111,7 +119,7 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
     its .json() output.
     Any additional kwargs are forwarded onto the requests.put().
     """
-    r = requests.put(url, body, headers=self.headers, **kwargs)
+    r = self._session.put(url, body, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
