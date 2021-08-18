@@ -87,8 +87,8 @@ class Source():
             elif file_ext in self.IMAGE_MIMES.keys():
                 mime_type = self.IMAGE_MIMES[file_ext]
             else:
-                raise ValueError(
-                    f"File extension must be one of these: {' '.join([key for key in self.IMAGE_MIMES.keys()])}")
+                print("\n File is not a recognised type", file_name)
+                continue
 
             with open(path, 'rb') as f:
 
@@ -100,7 +100,10 @@ class Source():
                 try:
                     client._upload_to_signed_blob_storage_url(f, url, mime_type)
                 except Exception as ex:
-                    print('\nAn exception occurred: ', ex)
+                    # The upload will retry in the face of errors. This blob can't be uploaded ata ll
+                    # Continue on to the next image without including any image info
+                    print(f'\nAn error occurred while uploading image {path} to blob storage:', ex)
+                    continue
 
                 # update the new image details to the relevant endpoint
                 info = {

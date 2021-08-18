@@ -10,6 +10,45 @@ from pathlib import Path
 import uuid
 
 import requests
+import urllib3
+
+
+def __get_retry_adapter():
+    retry_methods = urllib3.util.retry.Retry.DEFAULT_METHOD_WHITELIST.union(
+        ('POST', 'PUT'))
+    retry = urllib3.util.retry.Retry(
+        total=10,
+        backoff_factor=0.5,
+        status_forcelist=[(502, 503, 504, 408)],
+        method_whitelist=retry_methods
+    )
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    return adapter
+
+
+def _create_zegami_session(self):
+    """Create a session object to centrally handle auth and retry policy."""
+    s = requests.Session()
+    s.headers.update({
+        'Authorization': 'Bearer {}'.format(self.token),
+        'Content-Type': 'application/json',
+    })
+
+    # Set up retry policy. Retry post requests as well as the usual methods.
+    adapter = __get_retry_adapter()
+    s.mount('http://', adapter)
+    s.mount('https://', adapter)
+
+    self._zegami_session = s
+
+
+def _create_blobstore_session(self):
+    """Session object to centrally handle retry policy."""
+    s = requests.Session()
+    adapter = __get_retry_adapter()
+    s.mount('https://', adapter)
+
+    self._blobstore_session = s
 
 
 def _ensure_token(self, username, password, token, allow_save_token):
@@ -79,7 +118,7 @@ def _auth_get(self, url, return_response=False, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.get().
     """
-    r = requests.get(url, headers=self.headers, **kwargs)
+    r = self._zegami_session.get(url, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -89,7 +128,7 @@ def _auth_delete(self, url, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.delete().
     """
-    resp = requests.delete(url, headers=self.headers, **kwargs)
+    resp = self._zegami_session.delete(url, **kwargs)
     self._check_status(resp, is_async_request=False)
     return resp
 
@@ -100,7 +139,7 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
     its .json() output.
     Any additional kwargs are forwarded onto the requests.post().
     """
-    r = requests.post(url, body, headers=self.headers, **kwargs)
+    r = self._zegami_session.post(url, body, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -111,7 +150,7 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
     its .json() output.
     Any additional kwargs are forwarded onto the requests.put().
     """
-    r = requests.put(url, body, headers=self.headers, **kwargs)
+    r = self._zegami_session.put(url, body, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -131,7 +170,7 @@ def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1):
     return urls, id_set
 
 
-def _upload_to_signed_blob_storage_url(data, url, mime_type, headers=None, **kwargs):
+def _upload_to_signed_blob_storage_url(self, data, url, mime_type, **kwargs):
     """Upload data to an already obtained blob storage url."""
     if url.startswith("/"):
         url = f'https://storage.googleapis.com{url}'
@@ -140,5 +179,5 @@ def _upload_to_signed_blob_storage_url(data, url, mime_type, headers=None, **kwa
     # https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
-    response = requests.put(url, data=data, headers=headers, **kwargs)
+    response = self._blobstore_session.put(url, data=data, headers=headers, **kwargs)
     assert response.ok
