@@ -9,9 +9,9 @@ numpy
 pandas
 pathlib
 Pillow
-requests=2.26.0
+requests==2.26.0
 twine
 xlrd
 libmagic
 tqdm
-urllib=1.26.6
+urllib==1.26.6
