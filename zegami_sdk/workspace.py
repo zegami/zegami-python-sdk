@@ -150,9 +150,17 @@ class Workspace():
         return sources_names
 
     def create_collection(self, coll_name, sources_list, data=None, desc='', dynamic=False, version=2, **kwargs):
-        """Create a collection with provided images and data.
+        """
+        Create a collection with provided images and data.
         Image data should be provided as a list of sources, each item there must contain a dict
-        with the source name and a path to the image directory: [{'source_name': 'name', 'image_dir: 'some/path'}]"""
+        with the source name and configuration for the source a path to the image directory:
+            [{
+                'source_name': 'name',
+                'image_dir: 'some/path',
+                'recurse_dirs': True,  // whether to upload files from subfolders. Defaults to False
+                'mime_type': 'image/jpg',  // optionally specify the mime type rather than inferring
+            }]
+        """
         if version == 2:
             sources_names = self._get_all_sources_names(sources_list)
             kwargs['image_sources'] = sources_names
@@ -169,6 +177,7 @@ class Workspace():
         if data:
             coll.replace_data(data)
         print(f'Collection [id: {coll.id}] created successfully.')
+        return coll
 
     def __len__(self):
         len(self.collections)
