@@ -335,7 +335,7 @@ class Collection():
         """
         Upload images to a collection.
         Image data should be provided as a dict, containing the
-        source name and a path to the image directory: 
+        source name and a path to the image directory:
         {
             'source_name': 'name',
             'image_dir: 'some/path',

@@ -262,7 +262,8 @@ class Source():
 
         # Replace empties. Informs the server that all uploads are complete.
         c = self._collection.client
-        replace_empties_url = f'{c.HOME}/{c.API_0}/project/{self._collection.workspace_id}/imagesets/{self._imageset_id}/replace_empties'
+        replace_empties_url = '{}/{}/project/{}/imagesets/{}/replace_empties'.format(
+            c.HOME, c.API_0, self._collection.workspace_id, self._imageset_id)
         c._auth_post(replace_empties_url, body=None, json={})
 
         if show_time_taken:
