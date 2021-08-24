@@ -228,7 +228,7 @@ class AnnotationMask(_Annotation):
             top, bottom, left, right = 0, 0, 0, 0
 
         return {'top': top, 'bottom': bottom, 'left': left, 'right': right}
-    
+
     @staticmethod
     def base64_to_boolmask(b64_data):
         ''' Converts str base64 annotation data from Zegami into a boolean
