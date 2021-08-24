@@ -15,10 +15,13 @@ from .util import (
     _create_blobstore_session,
     _ensure_token,
     _get_token,
+    _get_token_name,
     _check_status,
     _obtain_signed_blob_storage_urls,
     _upload_to_signed_blob_storage_url
 )
+
+DEFAULT_HOME = 'https://zegami.com'
 
 
 class ZegamiClient():
@@ -36,7 +39,6 @@ class ZegamiClient():
     controllers to browse data from.
     """
 
-    TOKEN_NAME = 'zegami.token'
     HOME = 'https://zegami.com'
     API_0 = 'api/v0'
     API_1 = 'api/v1'
@@ -48,15 +50,17 @@ class ZegamiClient():
     _create_zegami_session = _create_zegami_session
     _create_blobstore_session = _create_blobstore_session
     _ensure_token = _ensure_token
-    _get_token = classmethod(_get_token)
+    _get_token_name = _get_token_name
+    _get_token = _get_token
     _check_status = staticmethod(_check_status)
     _obtain_signed_blob_storage_urls = _obtain_signed_blob_storage_urls
     _upload_to_signed_blob_storage_url = _upload_to_signed_blob_storage_url
     _zegami_session = None
     _blobstore_session = None
 
-    def __init__(self, username=None, password=None, token=None, allow_save_token=True):
+    def __init__(self, username=None, password=None, token=None, allow_save_token=True, home=DEFAULT_HOME):
         # Make sure we have a token
+        self.HOME = home
         self._ensure_token(username, password, token, allow_save_token)
 
         # Initialise a requests session
@@ -146,8 +150,5 @@ class ZegamiClient():
 
 class _ZegamiStagingClient(ZegamiClient):
 
-    TOKEN_NAME = 'staging.zegami.token'
-    HOME = 'https://staging.zegami.com'
-
-    def __init__(self, username=None, password=None, token=None, allow_save_token=True):
-        super().__init__(username, password, token, allow_save_token)
+    def __init__(self, username=None, password=None, token=None, allow_save_token=True, home='https://staging.zegami.com'):
+        super().__init__(username, password, token, allow_save_token, home=home)
