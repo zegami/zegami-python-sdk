@@ -150,5 +150,6 @@ class ZegamiClient():
 
 class _ZegamiStagingClient(ZegamiClient):
 
-    def __init__(self, username=None, password=None, token=None, allow_save_token=True, home='https://staging.zegami.com'):
+    def __init__(self, username=None, password=None, token=None, allow_save_token=True,
+                 home='https://staging.zegami.com'):
         super().__init__(username, password, token, allow_save_token, home=home)
