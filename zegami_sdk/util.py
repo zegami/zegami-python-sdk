@@ -10,6 +10,7 @@ from pathlib import Path
 import uuid
 
 import requests
+from urllib.parse import urlparse
 import urllib3
 
 
@@ -51,6 +52,13 @@ def _create_blobstore_session(self):
     self._blobstore_session = s
 
 
+def _get_token_name(self):
+    url = urlparse(self.HOME)
+    netloc = url.netloc
+    prefix = netloc.replace('.', '_')
+    return f'{prefix}.zegami.token'
+
+
 def _ensure_token(self, username, password, token, allow_save_token):
     """Tries the various logical steps to ensure a login token is set.
 
@@ -58,7 +66,7 @@ def _ensure_token(self, username, password, token, allow_save_token):
     saved token files.
     """
     # Potential location of locally saved token
-    local_token_path = os.path.join(Path.home(), self.TOKEN_NAME)
+    local_token_path = os.path.join(Path.home(), self._get_token_name())
 
     if token:
         if os.path.exists(token):
@@ -83,10 +91,11 @@ def _ensure_token(self, username, password, token, allow_save_token):
                              'and no locally saved token was found.')
 
 
-def _get_token(ZC, username, password):
+def _get_token(self, username, password):
     """Gets the client's token using a username and password."""
 
-    url = '{}/oauth/token/'.format(ZC.HOME)
+    url = '{}/oauth/token/'.format(self.HOME)
+
     data = {'username': username, 'password': password, 'noexpire': True}
 
     r = requests.post(url, json=data)

@@ -286,9 +286,9 @@ class Collection():
                 response = c._auth_get(url)
                 signed_route_urls.append(response['url'])
             return signed_route_urls
-        
+
     def download_annotation(self, annotation_id):
-        """ Converts an annotation_id into downloaded annotation data. 
+        """ Converts an annotation_id into downloaded annotation data.
         This will vary in content depending on the annotation type and
         format. """
         zc = self.client

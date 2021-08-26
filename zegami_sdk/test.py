@@ -44,12 +44,6 @@ class TestHelper(unittest.TestCase):
         )
 
 
-class TestZegamiClientMock(ZegamiClient):
-
-    TOKEN_NAME = 'mock.zegami.token'
-    HOME = 'https://mockzegami.com'
-
-
 class TestSdkUtil(unittest.TestCase):
 
     @requests_mock.Mocker()
@@ -59,8 +53,8 @@ class TestSdkUtil(unittest.TestCase):
         super().setUp()
         self.username = 'testUser'
         self.password = 'passWord'
-        self.local_token_path = os.path.join(Path.home(), 'mock.zegami.token')
-        self.url = TestZegamiClientMock(username=self.username, password=self.password)
+        self.local_token_path = os.path.join(Path.home(), 'mockzegami_com.zegami.token')
+        self.url = ZegamiClient(username=self.username, password=self.password, home="https://mockzegami.com")
 
     def tearDown(self):
         os.remove(self.local_token_path)
