@@ -234,7 +234,7 @@ class Source():
 
         i = 0
         while i < total_work:
-            path = os.path.join(image_dir, files[i])
+            path = files[i]
             workload.append(path)
             i += 1
             if len(workload) == size or i == total_work:
