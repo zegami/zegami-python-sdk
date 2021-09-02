@@ -172,10 +172,11 @@ class Workspace():
             coll_name, desc, dynamic=dynamic, version=version, **kwargs)
         coll = self.get_collection_by_id(coll_details['id'])
 
-        for source in sources_list:
-            coll.upload_images(source)
         if data:
             coll.replace_data(data)
+
+        for source in sources_list:
+            coll.upload_images(source)
         print(f'Collection [id: {coll.id}] created successfully.')
         return coll
 
