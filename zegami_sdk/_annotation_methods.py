@@ -7,8 +7,9 @@ import base64
 from PIL import Image
 
 
-def get_annotations_for_collection(self, collection, source=None):
-    """Gets all annotations available for a given collection.
+def get_annotations_for_collection(self, collection, source=None, type='mask'):
+    """Gets all one type of annotations available for a given collection.
+    Default as mask annotations.
 
     Optionally, provide a source index (integer) to retrieve only annotations
     related to that source.
@@ -32,6 +33,8 @@ def get_annotations_for_collection(self, collection, source=None):
             'Provided source is too high for number of sources available '\
             '(index {} in list length {})'.format(source, len(srcs))
         url += '/source/{}'.format(source)
+    
+    url += '?type={}'.format(type)
 
     # Perform the GET
     annos = self._auth_get(url)
@@ -39,8 +42,9 @@ def get_annotations_for_collection(self, collection, source=None):
     return annos
 
 
-def get_annotations_for_image(self, collection, row_index, source=None):
-    """Gets the annotations for a single image in a collection.
+def get_annotations_for_image(self, collection, row_index, source=None, type='mask'):
+    """Gets one type of annotations for a single image in a collection.
+    Default as mask annotations.
 
     Specify the imageby giving its data row.
     """
@@ -61,13 +65,13 @@ def get_annotations_for_image(self, collection, row_index, source=None):
     imageset_index = lookup[row_index]
 
     if uses_sources:
-        url = '{}/{}/project/{}/annotations/collection/{}/source/{}/images/{}'\
-            .format(self.HOME, self.API_1, wid, cid, srcs[source]['source_id'], imageset_index)
+        url = '{}/{}/project/{}/annotations/collection/{}/source/{}/images/{}?type={}'\
+            .format(self.HOME, self.API_1, wid, cid, srcs[source]['source_id'], imageset_index, type)
 
     else:
         iid = self._extract_imageset_id(collection)
-        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'\
-            .format(self.HOME, self.API_1, wid, iid, imageset_index)
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'\
+            .format(self.HOME, self.API_1, wid, iid, imageset_index, type)
 
     # Perform the GET
     annos = self._auth_get(url)
