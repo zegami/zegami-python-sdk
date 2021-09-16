@@ -430,17 +430,21 @@ class Collection():
             tags[record['tag']].append(record['key'])
         return tags
 
-    def get_annotations(self) -> dict:
-        """Returns all annotations attached to the collection."""
+    def get_annotations(self, type='mask') -> dict:
+        """Returns one type of annotations attached to the collection.
+        Default as mask annotations.
+        """
 
         c = self.client
-        url = '{}/{}/project/{}/annotations/collection/{}'.format(
-            c.HOME, c.API_1, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/annotations/collection/{}?type={}'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id, type)
 
         return c._auth_get(url)
 
-    def get_annotations_for_image(self, row_index, source=None) -> list:
-        """Returns all annotations for a single item in the collection."""
+    def get_annotations_for_image(self, row_index, source=None, type='mask') -> list:
+        """Returns one type of annotations for a single item in the collection.
+        Default as mask annotations.
+        """
         if source is not None:
             self._source_warning()
 
@@ -451,8 +455,8 @@ class Collection():
         lookup = self._get_image_meta_lookup()
         imageset_index = lookup[row_index]
 
-        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'.format(
-            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index)
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'.format(
+            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, type)
 
         return c._auth_get(url)
 
@@ -719,17 +723,21 @@ class CollectionV2(Collection):
         for s in ss:
             print('{} : {}'.format(s._imageset_id, s.name))
 
-    def get_annotations(self, source=0) -> list:
-        """Gets all annotations for a particular source of a collection."""
+    def get_annotations(self, source=0, type='mask') -> list:
+        """Gets one type of annotations for a particular source of a collection.
+        Default as mask annotations.
+        """
         c = self.client
         source = self._parse_source(source)
 
-        url = '{}/{}/project/{}/annotations/collection/{}/source/{}'.format(
-            c.HOME, c.API_1, self.workspace_id, self.id, source.id)
+        url = '{}/{}/project/{}/annotations/collection/{}/source/{}?type={}'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id, source.id, type)
         return c._auth_get(url)
 
-    def get_annotations_for_image(self, row_index, source=0) -> list:
-        """Returns all annotations for a single item in the collection."""
+    def get_annotations_for_image(self, row_index, source=0, type='mask') -> list:
+        """Returns one type of annotations for a single item in the collection.
+        Default as mask annotations.
+        """
         c = self.client
         source = self._parse_source(source)
         assert type(row_index) == int and row_index >= 0,\
@@ -737,8 +745,8 @@ class CollectionV2(Collection):
 
         lookup = self._get_image_meta_lookup()
         imageset_index = lookup[row_index]
-        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'.format(
-            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index)
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'.format(
+            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, type)
 
         return c._auth_get(url)
 
