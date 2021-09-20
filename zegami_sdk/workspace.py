@@ -4,7 +4,9 @@ Zegami Ltd.
 
 Apache 2.0
 """
+import os
 import io
+import pandas as pd
 from urllib.parse import urlparse
 
 from azure.storage.blob import (
@@ -14,6 +16,7 @@ from azure.storage.blob import (
 
 from .collection import Collection
 from .helper import guess_data_mimetype
+from .source import UploadableSource
 
 
 class Workspace():
@@ -47,7 +50,8 @@ class Workspace():
     @collections.getter
     def collections(self):
         c = self._client
-        assert c, 'Workspace had no client set when obtaining collections'
+        if not c:
+            raise ValueError('Workspace had no client set when obtaining collections')
 
         url = '{}/{}/project/{}/collections/'.format(c.HOME, c.API_0, self.id)
         collection_dicts = c._auth_get(url)
@@ -56,40 +60,49 @@ class Workspace():
         collection_dicts = collection_dicts['collections']
         return [Collection._construct_collection(c, self, d) for d in collection_dicts]
 
-    def get_collection_by_name(self, name):
-        cs = self.collections
-        for c in cs:
-            if c.name.lower() == name.lower():
-                return c
-        raise ValueError('Couldn\'t find a collection with the name \'{}\''.format(name))
+    def get_collection_by_name(self, name) -> Collection:
+        ''' Obtains a collection by name (case-insensitive). '''
+        matches = list(filter(lambda c: c.name.lower() == name.lower(), self.collections))
+        if len(matches) == 0:
+            raise IndexError('Couldn\'t find a collection with the name \'{}\''.format(name))
+        return matches[0]
 
-    def get_collection_by_id(self, id):
-        cs = self.collections
-        for c in cs:
-            if c.id == id:
-                return c
-        raise ValueError('Couldn\'t find a collection with the ID \'{}\''.format(id))
+    def get_collection_by_id(self, id) -> Collection:
+        ''' Obtains a collection by ID. '''
+        matches = list(filter(lambda c: c.id == id, self.collections))
+        if len(matches) == 0:
+            raise IndexError('Couldn\'t find a collection with the ID \'{}\''.format(id))
+        return matches[0]
 
-    def show_collections(self):
+    def show_collections(self) -> None:
+        ''' Prints this workspace's available collections. '''
         cs = self.collections
-        assert cs, 'Workspace obtained invalid collections'
+        if not cs:
+            print('No collections found')
+            return
 
         print('\nCollections in \'{}\' ({}):'.format(self.name, len(cs)))
         for c in cs:
             print('{} : {}'.format(c.id, c.name))
 
     def _check_data(self) -> None:
-        assert self._data, 'Workspace had no self._data set'
-        assert type(self._data) == dict, 'Workspace didn\'t have a dict for '\
-            'its data ({})'.format(type(self._data))
+        ''' This object should have a populated self._data, runs a check. '''
+        if not self._data:
+            raise ValueError('Workspace has no self._data set')
+        if type(self._data) is not dict:
+            raise TypeError('Workspace didn\'t have a dict for its data ({})'\
+                            .format(type(self._data)))
 
-    def get_storage_item(self, storage_id):
+    def get_storage_item(self, storage_id) -> io.BytesIO:
+        ''' Obtains an item in online-storage by its ID. '''
         c = self._client
         url = '{}/{}/project/{}/storage/{}'.format(c.HOME, c.API_1, self.id, storage_id)
         resp = c._auth_get(url, return_response=True)
         return io.BytesIO(resp.content), resp.headers.get('content-type')
 
-    def create_storage_item(self, data, mime_type=None):
+    def create_storage_item(self, data, mime_type=None) -> str:
+        ''' Creates and uploads data into online-storage. Returns its storage
+        ID. '''
 
         if not mime_type:
             mime_type = guess_data_mimetype(data)
@@ -117,67 +130,116 @@ class Workspace():
 
         return resp['id']
 
-    def delete_storage_item(self, storage_id):
+    def delete_storage_item(self, storage_id) -> bool:
+        ''' Deletes a storage item by ID. Returns the response's OK signal. '''
         c = self._client
         url = '{}/{}/project/{}/storage/{}'.format(c.HOME, c.API_1, self.id, storage_id)
         resp = c._auth_delete(url)
         return resp.ok
 
     # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
-    def _create_empty_collection(self, coll_name, desc='', dynamic=False, version=2, **kwargs):
-        """Crete an empty collection that will be updated with images and data."""
+    def _create_empty_collection(self, name, description, **kwargs):
+        ''' Create an empty collection, ready for images and data. '''
+        
+        defaults = {
+            'version' : 2,
+            'dynamic' : False,
+            'upload_dataset' : { 'source' : { 'upload' : {} } }
+        }
+        
+        for k, v in defaults.items():
+            if k not in kwargs.keys():
+                kwargs[k] = v
 
         post_data = {
-            'name': coll_name,
-            'description': desc,
-            'dynamic': dynamic,
-            'upload_dataset': {'source': {'upload': {}}},
-            'version': version,
-            **kwargs,
+            'name': name,
+            'description': description,
+            **kwargs
         }
 
-        create_url = f'{self._client.HOME}/{self._client.API_0}/project/{self.id}/collections'
+        url = '{}/{}/project/{}/collections'.format(
+            self.client.HOME, self.client.API_0, self.id) 
 
-        resp = self._client._auth_post(create_url, body=None, json=post_data)
+        resp = self.client._auth_post(url, body=None, json=post_data)
 
         return resp['collection']
 
-    def _get_all_sources_names(self, sources):
-        """Get the names of all sources in a list."""
-        sources_names = []
-        for source in sources:
-            sources_names.append({'name': source['source_name']})
-        return sources_names
+    def create_collection(self, name, uploadable_sources, data=None,
+                          description='', **kwargs):
+        ''' Create a collection with provided images and data.
+        
+        A list of image sources (or just one) should be provided, built using
+        Source.create_uploadable_source(). These instruct the SDK where to
+        look for images to populate the collection.
+        
+        - name:
+            The name of the collection.
+            
+        - uploadable_sources:
+            A list of [UploadableSource()] built using:
+                
+                from zegami_sdk.source import UploadableSource
+                sources = [ UploadableSource(params_0),
+                            UploadableSource(params_1),
+                            ... ]
+            
+        - data:
+            Uploading data is optional when uploading a single source, but
+            required for multi-source collections to match sibling images
+            together.
+            
+            Each UploadableSource has a filename_column that should
+            point to a column in the data. This column should contain the
+            filename of each image for that source.
+            
+            Multiple sources may share
+            the same column if all images of different sources have the same
+            names.
+            
+            Provide a pandas.DataFrame() a filepath to a .csv.
+            
+        - description:
+            A description for the collection.
+        '''
+        
+        # Parse for a list of UploadableSources
+        uploadable_sources = UploadableSource._parse_list(uploadable_sources)
+            
+        # If using multi-source, must provide data
+        if data is None and len(uploadable_sources > 1):
+            raise ValueError('If uploading more than one image source, data '\
+                'is required to correctly join different images from each')
+                
+        # Parse data
+        if type(data) is str:
+            if not os.path.exists(data):
+                raise FileNotFoundError('Data file "{}" doesn\'t exist'\
+                                        .format(data))
+            data = pd.read_csv(data)
+            
+        # Check that all source filenames exist in the provided data
+        if data is not None:
+            for s in uploadable_sources:
+                s._check_in_data(data)
+            
+        # Create an empty collection
+        blank_resp = self._create_empty_collection(name, description)
+        blank_id = blank_resp['id']
+        blank = self.get_collection_by_id(blank_id)
+        
+        # Upload sources
+        for s in uploadable_sources:
+            # blank.upload_images()
+            pass
 
-    def create_collection(self, coll_name, sources_list, data=None, desc='', dynamic=False, version=2, **kwargs):
-        """
-        Create a collection with provided images and data.
-        Image data should be provided as a list of sources, each item there must contain a dict
-        with the source name and configuration for the source a path to the image directory:
-            [{
-                'source_name': 'name',
-                'image_dir: 'some/path',
-                'recurse_dirs': True,  // whether to upload files from subfolders. Defaults to False
-                'mime_type': 'image/jpg',  // optionally specify the mime type rather than inferring
-            }]
-        """
-        if version == 2:
-            sources_names = self._get_all_sources_names(sources_list)
-            kwargs['image_sources'] = sources_names
-        else:
-            # Make sure the mock source has the correct name
-            sources_list[0]['source_name'] = coll_name
-
-        coll_details = self._create_empty_collection(
-            coll_name, desc, dynamic=dynamic, version=version, **kwargs)
-        coll = self.get_collection_by_id(coll_details['id'])
-
+        '''
         for source in sources_list:
             coll.upload_images(source)
         if data:
             coll.replace_data(data)
         print(f'Collection [id: {coll.id}] created successfully.')
         return coll
+        '''
 
     def __len__(self):
         len(self.collections)

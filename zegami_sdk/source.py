@@ -268,3 +268,106 @@ class Source():
 
         if show_time_taken:
             print(f'\nUploaded {total_work} images in {time() - t:.2f} seconds.')
+            
+            
+class UploadableSource():
+    
+    def __init__(self, name, image_dir, column_filename='Filename', mime_type='image/png'):
+        ''' Used in conjunction with create_collection(). An UploadableSource
+        points towards local files for uploading into a collection. '''
+        
+        self.name = name
+        self.image_dir = image_dir
+        self.column_filename = column_filename
+        self.mime_type = mime_type
+        
+        # Check the directory exists
+        if not os.path.exists(image_dir):
+            raise FileNotFoundError('image_dir "{}" does not exist'\
+                                    .format(self.image_dir))
+        if not os.path.isdir(image_dir):
+            raise TypeError('image_dir "{}" is not a directory'\
+                            .format(self.image_dir))
+                
+        # May need to expand used mimetypes
+        mtypes = ['image/png', 'image/jpg']
+        if mime_type not in mtypes:
+            raise ValueError('mime_type should be one of {}'.format(mtypes))
+        ext = mime_type.rsplit('/', 1)[-1]
+                
+        # Find all files matching the declared mime-type
+        all_files = os.listdir(image_dir)
+        self.filenames = [fn for fn in all_files if fn.lower().endswith(ext)]
+        self.filepaths = [os.path.join(self.image_dir, fn) for fn in self.filenames]
+        
+        print('Source "{}" found {} {}s out of {} objects in "{}"'\
+              .format(self.name, len(self.filenames), ext, len(all_files), self.image_dir))
+            
+    def upload_to_collection(self, collection):
+        ''' Uploads all images by filepath to the specified collection, under
+        the designated source name. '''
+        
+        t0 = time()
+        with tqdm(total=len(self.filepaths)) as pbar:
+            with ThreadPoolExecutor() as ex:
+                # futures = [ex.submit(self)]
+                pass
+        
+            
+    def _check_in_data(self, data):
+        cols = list(data.columns)
+        if self.column_filename not in cols:
+            raise Exception('Source "{}" had the filename_column "{}" '\
+                'which is not a column of the provided data:\n{}'\
+                .format(self.name, self.filename_column, cols))
+        
+    @classmethod
+    def _parse_list(cls, uploadable_sources) -> list:
+        ''' Returns a checked list of instances. '''
+        
+        if isinstance(uploadable_sources, cls):
+            uploadable_sources = [uploadable_sources]
+        elif type(uploadable_sources) is not list:
+            raise TypeError('uploadable_sources should be a list of '\
+                            'UploadableSources')
+                
+        for u in uploadable_sources:
+            if not isinstance(u, UploadableSource):
+                raise TypeError('uploadable_sources should be a list of '\
+                                'source.UploadableSource() instances')
+                    
+        return uploadable_sources
+        
+            
+        
+        
+                
+        
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
