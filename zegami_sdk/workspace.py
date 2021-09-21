@@ -89,7 +89,7 @@ class Workspace():
         resp = c._auth_get(url, return_response=True)
         return io.BytesIO(resp.content), resp.headers.get('content-type')
 
-    def create_storage_item(self, data, mime_type=None):
+    def create_storage_item(self, data, mime_type=None, item_name=None):
 
         if not mime_type:
             mime_type = guess_data_mimetype(data)
@@ -97,6 +97,8 @@ class Workspace():
         # get signed url to use signature
         client = self._client
         url = '{}/{}/project/{}/storage/signedurl'.format(client.HOME, client.API_1, self.id)
+        if item_name:
+            url += '?name={}'.format(item_name)
         resp = client._auth_get(url)
 
         blob_id = 'storage/' + resp['id']
