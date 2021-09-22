@@ -225,7 +225,7 @@ class UploadableSource():
             ex.shutdown(wait=True)
          
         # Upload bulk image info
-        url = '{}/{}/project/{}/imagesets/{}/images_bulk'\
+        url = '{}/{}/project/{}/imagesets/{}/images_bulk?start=0'\
             .format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         c._auth_post(url, body=None, return_response=True, json={ 'images' : bulk_info })
             
