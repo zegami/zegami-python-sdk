@@ -60,14 +60,14 @@ class Source():
 class UploadableSource():
     
     IMAGE_MIMES = {
-    ".bmp": "image/bmp",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-    ".gif": "image/gif",
-    ".tif": "image/tiff",
-    ".tiff": "image/tiff",
-    ".dcm": "application/dicom",
+        ".bmp": "image/bmp",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+        ".dcm": "application/dicom",
     }
 
     BLACKLIST = (
@@ -217,11 +217,10 @@ class UploadableSource():
                 for f in as_completed(futures):
                     try:
                         f.result()
-                        pbar.update(1)
                     except Exception as e:
                         print(e)
                         failed += 1
-                        pbar.update(1)
+                    pbar.update(1)
                 
             ex.shutdown(wait=True)
          
