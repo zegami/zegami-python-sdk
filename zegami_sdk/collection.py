@@ -339,27 +339,6 @@ class Collection():
 
         self._cached_rows = None
 
-    def upload_source(self, uploadable_source, show_time_taken=True):
-        '''
-        Uploads images to a collection using an UploadableSource().
-        Image data should be provided as a dict, containing the
-        source name and a path to the image directory:
-        {
-            'source_name': 'name',
-            'image_dir: 'some/path',
-            'recurse_dirs': True,  // whether to upload files from subfolders. Defaults to False
-            'mime_type': 'image/jpg',  // optionally specify the mime type rather than inferring
-        }
-        
-        for source in self.sources:
-            if source_dict['source_name'] == source.name:
-                source._upload_all_images(
-                    source_dict['image_dir'],
-                    mime_type=source_dict.get('mime_type', None),
-                    recurse_dirs=source_dict.get('recurse_dirs', False),
-                    show_time_taken=show_time_taken,
-                )'''
-
     def download_image(self, url):
         """Downloads an image into memory as a PIL.Image.
 

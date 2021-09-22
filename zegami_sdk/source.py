@@ -7,7 +7,6 @@ Apache 2.0
 
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import time
 from tqdm import tqdm
 from glob import glob
 
@@ -231,9 +230,7 @@ class UploadableSource():
             .format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         c._auth_post(url, body=None, return_response=True, json={ 'images' : bulk_info })
             
-        print('UploadableSource "{}" finished uploading to collection "{}" '\
-              'with {}/{} failed image uploads'\
-              .format(self.name, collection.name, failed, len(self)))
+        print('- Finished uploading with {} failures', failed)
             
     def _upload_image(self, client, path, blob_url, mime_type):
         ''' Uploads a single image to the collection. '''
