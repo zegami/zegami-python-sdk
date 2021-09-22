@@ -72,7 +72,7 @@ class ZegamiClient():
 
         # Welcome message
         try:
-            print('\nInitialized successfully, welcome {}.'.format(self.name.split(' ')[0]))
+            print('Client initialized successfully, welcome {}.\n'.format(self.name.split(' ')[0]))
         except Exception:
             pass
 

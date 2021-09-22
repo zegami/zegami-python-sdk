@@ -26,27 +26,27 @@ class Workspace():
         self._check_data()
 
     @property
-    def id():
-        pass
-
+    def id(): pass
     @id.getter
     def id(self):
         assert 'id' in self._data.keys(), 'Workspace\'s data didn\'t have an \'id\' key'
         return self._data['id']
+    
+    @property
+    def client(): pass
+    @client.getter
+    def client(self):
+        return self._client
 
     @property
-    def name():
-        pass
-
+    def name(): pass
     @name.getter
     def name(self):
         assert 'name' in self._data.keys(), 'Workspace\'s data didn\'t have a \'name\' key'
         return self._data['name']
 
     @property
-    def collections():
-        pass
-
+    def collections(): pass
     @collections.getter
     def collections(self):
         c = self._client
@@ -138,7 +138,7 @@ class Workspace():
         return resp.ok
 
     # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
-    def _create_empty_collection(self, name, description, **kwargs):
+    def _create_empty_collection(self, name, uploadable_sources, description='', **kwargs):
         ''' Create an empty collection, ready for images and data. '''
         
         defaults = {
@@ -150,10 +150,18 @@ class Workspace():
         for k, v in defaults.items():
             if k not in kwargs.keys():
                 kwargs[k] = v
-
+                
+        # Don't let the user provide these
+        reserved = ['name', 'description', 'image_sources']
+        for k in reserved:
+            if k in kwargs.keys():
+                del kwargs[k]
+        
+        # Data to generate the collection, including sparse sources with no data
         post_data = {
-            'name': name,
-            'description': description,
+            'name' : name,
+            'description' : description,
+            'image_sources' : [ { 'name' : s.name } for s in uploadable_sources ],
             **kwargs
         }
 
@@ -192,9 +200,8 @@ class Workspace():
             point to a column in the data. This column should contain the
             filename of each image for that source.
             
-            Multiple sources may share
-            the same column if all images of different sources have the same
-            names.
+            Multiple sources may share the same column if all images of
+            different sources have the same names.
             
             Provide a pandas.DataFrame() a filepath to a .csv.
             
@@ -203,6 +210,7 @@ class Workspace():
         '''
         
         # Parse for a list of UploadableSources
+        print('- Parsing uploadable source list')
         uploadable_sources = UploadableSource._parse_list(uploadable_sources)
             
         # If using multi-source, must provide data
@@ -219,27 +227,38 @@ class Workspace():
             
         # Check that all source filenames exist in the provided data
         if data is not None:
+            print('- Checking data matches uploadable sources')
             for s in uploadable_sources:
                 s._check_in_data(data)
             
         # Create an empty collection
-        blank_resp = self._create_empty_collection(name, description)
+        print('- Creating blank collection "{}"'.format(name))
+        blank_resp = self._create_empty_collection(name, uploadable_sources, description=description, **kwargs)
         blank_id = blank_resp['id']
         blank = self.get_collection_by_id(blank_id)
         
-        # Upload sources
-        for s in uploadable_sources:
-            # blank.upload_images()
-            pass
-
-        '''
-        for source in sources_list:
-            coll.upload_images(source)
-        if data:
-            coll.replace_data(data)
-        print(f'Collection [id: {coll.id}] created successfully.')
-        return coll
-        '''
+        # If uploading data, do it now from the DataFrame
+        if data is not None:
+            print('- Uploading data')
+            blank.replace_data(data)
+        
+        # Fill in UploadableSource information with empty generated sources
+        print('- Registering collection sources to uploadable sources')
+        for i, us in enumerate(uploadable_sources):
+            us._register_source(i, blank.sources[i])
+        
+        # Upload source data
+        for us in uploadable_sources:
+            us._upload()
+            
+        # Format output string
+        plural_str = '' if len(uploadable_sources) < 2 else 's'
+        data_str = 'no data' if data is None else\
+            'data of shape {} rows x {} columns'\
+            .format(len(data), len(data.columns))
+            
+        print('- Finished collection "{}" upload using {} image source{} with {}'\
+              .format(name, len(uploadable_sources), plural_str, data_str))
 
     def __len__(self):
         len(self.collections)
