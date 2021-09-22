@@ -229,7 +229,7 @@ class UploadableSource():
             .format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         c._auth_post(url, body=None, return_response=True, json={ 'images' : bulk_info })
             
-        print('- Finished uploading with {} failures', failed)
+        print('- Finished uploading with {} failures'.format(failed))
             
     def _upload_image(self, client, path, blob_url, mime_type):
         ''' Uploads a single image to the collection. '''
