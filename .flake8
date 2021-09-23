@@ -1,6 +1,6 @@
 [flake8]
 exclude = .git,__pycache__,.idea,build,deps,doc
-ignore = D1,D401,D413,W504
+ignore = D1,D401,D413,W504,W0212
 max_complexity = 10
 import_order_style = google
 copyright-author = Zegami Ltd\n\n"""

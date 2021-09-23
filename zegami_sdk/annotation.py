@@ -12,7 +12,7 @@ from PIL import Image
 
 
 class _Annotation():
-    """Base (abstract) class for annotations."""
+    ''' Base (abstract) class for annotations. '''
 
     # Define the string annotation TYPE in child classes
     TYPE = None
@@ -34,7 +34,6 @@ class _Annotation():
     @property
     def collection():
         pass
-
     @collection.getter
     def collection(self):
         return self._collection
@@ -42,7 +41,6 @@ class _Annotation():
     @property
     def source():
         pass
-
     @source.getter
     def source(self):
         return self._source
@@ -50,7 +48,6 @@ class _Annotation():
     @property
     def _image_index():
         pass
-
     @_image_index.getter
     def _image_index(self):
         assert 'image_index' in self._data.keys(), 'Annotation\'s _data did '\
@@ -60,7 +57,6 @@ class _Annotation():
     @property
     def row_index():
         pass
-
     @row_index.getter
     def row_index(self):
         lookup = self.collection._get_image_meta_lookup(self.source)
@@ -69,7 +65,6 @@ class _Annotation():
     @property
     def _imageset_id():
         pass
-
     @_imageset_id.getter
     def _imageset_id(self):
         return self.collection._get_imageset_id(self.source)
@@ -168,7 +163,6 @@ class AnnotationMask(_Annotation):
     @property
     def mask_uint8():
         pass
-
     @mask_uint8.getter
     def mask_uint8(self):
         return self.mask_bool.astype(np.uint8) * 255
@@ -176,7 +170,6 @@ class AnnotationMask(_Annotation):
     @property
     def mask_bool():
         pass
-
     @mask_bool.getter
     def mask_bool(self):
         a = self._get_bool_arr()
