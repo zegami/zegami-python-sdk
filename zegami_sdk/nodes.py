@@ -62,3 +62,32 @@ def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
 
     # update node over API
     client._auth_put(url, None, json=node)
+
+
+def _get_imageset_images(client, workspace, node_id):
+    """
+    Get the list of image info entries for the given node
+    """
+    # fetch target node
+    url = '{}/{}/project/{}/{}/{}/images'.format(
+        client.HOME, client.API_1, workspace.id, "nodes", node_id
+    )
+    resp = client._auth_get(url)
+    return resp['images']
+
+
+def _get_null_imageset_entries(client, workspace, node_id):
+    """
+    Get the indices of all image info entries which are null
+    """
+    images_info = _get_imageset_images(client, workspace, node_id)
+    indices = [i for i, info in enumerate(images_info) if info == None]
+    return indices
+
+
+def _create_tasks_for_null_entries(client, workspace, node_id):
+    url = '{}/{}/project/{}/{}/{}/create_tasks_for_null'.format(
+        client.HOME, client.API_1, workspace.id, "nodes", node_id
+    )
+    print(url)
+    resp = client._auth_post(url, None)
