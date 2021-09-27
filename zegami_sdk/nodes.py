@@ -86,8 +86,11 @@ def _get_null_imageset_entries(client, workspace, node_id):
 
 
 def _create_tasks_for_null_entries(client, workspace, node_id):
+    """
+    Trigger creation of tasks for any entries in the imageset which are null.
+    Only intended for use with upload imagesets
+    """
     url = '{}/{}/project/{}/{}/{}/create_tasks_for_null'.format(
         client.HOME, client.API_1, workspace.id, "nodes", node_id
     )
-    print(url)
     resp = client._auth_post(url, None)
