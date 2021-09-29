@@ -705,7 +705,7 @@ class CollectionV2(Collection):
         ss = self.sources
         print('\nImage sources ({}):'.format(len(ss)))
         for s in ss:
-            print('{} : {}'.format(s._imageset_id, s.name))
+            print('{} : {}'.format(s.imageset_id, s.name))
 
     def get_annotations(self, source=0, type='mask') -> list:
         ''' Gets one type of annotations for a particular source of a collection.
@@ -739,7 +739,7 @@ class CollectionV2(Collection):
 
         self._check_data()
         self._check_version()
-        return self._parse_source(source)._imageset_id
+        return self._parse_source(source).imageset_id
 
     def _get_image_meta_lookup(self, source=0) -> list:
         self._check_data()
