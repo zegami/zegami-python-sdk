@@ -38,17 +38,13 @@ setup(
         'azure-storage-blob>=12.8.1',
         'python-magic>=0.4.24; sys_platform=="linux"',
         'python-magic-bin; platform_system=="Windows" or sys_platform=="darwin"',
-        'colorama',
-        'importlib-metadata',
-        'keyring',
-        'pathlib',
-        'numpy',
-        'pandas',
-        'Pillow',
-        'requests',
-        'tqdm',
-        'xlrd',
-        'urllib3'
+        'pathlib>=1.0',
+        'numpy>=1.17.0',
+        'pandas>=1.0.0',
+        'Pillow>=7.0.0',
+        'requests>=2.22.0',
+        'tqdm>=4.29.0',
+        'urllib3>=1.25.2'
     ],
     python_requires='>=3.6'
 )
