@@ -231,5 +231,7 @@ class AnnotationMask(_Annotation):
         if b64_data.startswith('data:'):
             b64_data = b64_data.split(',', 1)[-1]
         img = Image.open(io.BytesIO(base64.b64decode(b64_data)))
-        arr_int = np.array(np.array(img) * 255, dtype='uint8')
+        img_arr = np.array(img)
+        premax = img_arr.max()
+        arr_int = np.array(np.array(img) * 255 if premax < 2 else np.array(img), dtype='uint8')
         return arr_int > 125
