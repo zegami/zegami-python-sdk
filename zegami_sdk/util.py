@@ -164,7 +164,7 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
     return r if return_response else r.json()
 
 
-def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1, imageset_id=None):
+def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1, blob_path=None):
     """Obtain a signed blob storage url.
     Returns:
         [dict]: blob storage urls
@@ -172,8 +172,8 @@ def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1, imageset_id
     """
     blob_url = f'{self.HOME}/{self.API_1}/project/{workspace_id}/signed_blob_url'
 
-    if imageset_id:
-        id_set = {"ids": [f'imagesets/{imageset_id}/{str(uuid.uuid4())}' for i in range(id_count)]}
+    if blob_path:
+        id_set = {"ids": [f'{blob_path}/{str(uuid.uuid4())}' for i in range(id_count)]}
     else:
         id_set = {"ids": [str(uuid.uuid4()) for i in range(id_count)]}
 

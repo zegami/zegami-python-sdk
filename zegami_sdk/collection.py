@@ -313,7 +313,7 @@ class Collection():
         mime_type = 'application/octet-stream'
 
         # create blob storage and upload to it
-        urls, id_set = zeg_client._obtain_signed_blob_storage_urls(self.workspace_id)
+        urls, id_set = zeg_client._obtain_signed_blob_storage_urls(self.workspace_id, blob_path=f'datasets/{self._upload_dataset_id}')
         blob_id = id_set['ids'][0]
         url = urls[blob_id]
         zeg_client._upload_to_signed_blob_storage_url(upload_data, url, mime_type)
