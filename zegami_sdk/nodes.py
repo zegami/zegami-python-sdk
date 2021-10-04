@@ -45,12 +45,7 @@ def add_node(
     return resp
 
 
-def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
-    """
-    Add parent_node_id to the list of parents of node_id.
-
-    This should eventually be done via a dedicated API endpoint to avoid the need to fetch and modify the existing node
-    """
+def _fetch_node(client, workspace, node_id, type="dataset"):
     assert type in ["dataset", "imageset"]
 
     # fetch target node
@@ -65,6 +60,16 @@ def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
     for field in readonly_fields:
         if field in node:
             node.pop(field)
+
+    return node, url
+
+def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
+    """
+    Add parent_node_id to the list of parents of node_id.
+
+    This should eventually be done via a dedicated API endpoint to avoid the need to fetch and modify the existing node
+    """
+    node, url = _fetch_node(client, workspace, node_id, type)
 
     # add new parent to source
     parent_ids = node.get('source').get(type + '_id')
@@ -86,6 +91,27 @@ def _get_imageset_images(client, workspace, node_id):
     resp = client._auth_get(url)
     return resp['images']
 
+def remove_parent(client, workspace, node_id, parent_node_id, type="dataset"):
+    node, url = _fetch_node(client, workspace, node_id, type)
+    parent_ids = node['source'][type + '_id']
+    node['source'][type + 'id'] = [parent for parent in parent_ids if parent != parent_node_id]
+
+    client._auth_put(url, None, json=node)
+
+
+def set_parent(client, workspace, node_id, parent_node_id, type="dataset", parent_type="dataset"):
+    """
+    Update the given node to use the new parent for the given type.
+
+    Only applicable to node types which have a single parent of the given type.
+    """
+    node, url = _fetch_node(client, workspace, node_id, type)
+
+    node.get('source')[parent_type + '_id'] = parent_node_id
+
+    # update node over API
+    client._auth_put(url, None, json=node)
+
 
 def _get_null_imageset_entries(client, workspace, node_id):
     """
@@ -105,3 +131,18 @@ def _create_tasks_for_null_entries(client, workspace, node_id):
         client.HOME, client.API_1, workspace.id, "nodes", node_id
     )
     client._auth_post(url, None)
+
+
+def remove_node_group(client, workspace, node_id, group_id, type="dataset"):
+    node, url = _fetch_node(client, workspace, node_id, type)
+    current_groups = node.get('node_groups', [])
+    node['node_groups'] = [group for group in current_groups if group != group_id]
+    
+    client._auth_put(url, None, json=node)
+
+
+def add_node_group(client, workspace, node_id, group_id, type="dataset"):
+    node, url = _fetch_node(client, workspace, node_id, type)
+    if group_id not in node['node_groups']:
+        node['node_groups'].append(group_id)
+        client._auth_put(url, None, json=node)

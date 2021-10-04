@@ -164,11 +164,14 @@ class Workspace():
 
         # Data to generate the collection, including sparse sources with no data
         post_data = {
-            'name': name,
-            'description': description,
-            'image_sources': [{'name': s.name, 'dataset_column': s.column_filename} for s in uploadable_sources],
+            'name' : name,
+            'description' : description,
+            # 'image_sources' : [ { 'name' : s.name, 'dataset_column': s.column_filename } for s in uploadable_sources ],
             **kwargs
         }
+
+        if kwargs['version'] == 2:
+            post_data['image_sources'] = [ { 'name' : s.name } for s in uploadable_sources ]
 
         url = '{}/{}/project/{}/collections'.format(
             self.client.HOME, self.client.API_0, self.id)

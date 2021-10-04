@@ -1218,6 +1218,16 @@ class Collection():
         Collects all annotations of a type (or all if anno_type=None) and
         returns the information as a dataframe.
         """
+    def _update(self, collection_details):
+        """Update a collection's details. This can be used to rename, or add a description, but should be used with caution."""
+        update_url = f'{self._client.HOME}/{self._client.API_0}/project/{self.workspace_id}/collections/{self.id}'
+        c = self.client
+
+        collection_details.pop('status')
+        print(self.id, collection_details)
+
+        c._auth_put(update_url, return_response=False, json=collection_details)
+
 
         source = self._parse_source(source)
 

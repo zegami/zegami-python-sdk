@@ -150,7 +150,7 @@ def _auth_delete(self, url, **kwargs):
     return resp
 
 
-def _auth_post(self, url, body, return_response=False, **kwargs):
+def _auth_post(self, url, body=None, return_response=False, **kwargs):
     """Synchronous POST request. Used as standard over async currently.
 
     If return_response == True, the response object is returned rather than
@@ -160,11 +160,10 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
     r = self._zegami_session.post(
         url, body, verify=not ALLOW_INSECURE_SSL, **kwargs
     )
-    self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
 
-def _auth_put(self, url, body, return_response=False, **kwargs):
+def _auth_put(self, url, body=None, return_response=False, **kwargs):
     """Synchronous PUT request. Used as standard over async currently.
 
     If return_response == True, the response object is returned rather than
@@ -175,7 +174,10 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
         url, body, verify=not ALLOW_INSECURE_SSL, **kwargs
     )
     self._check_status(r, is_async_request=False)
-    return r if return_response and r.ok else r.json()
+    if r.status_code == 204:
+        # no body
+        return
+    return r if return_response else r.json()
 
 
 def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1, blob_path=None):
