@@ -252,7 +252,7 @@ class UploadableSource():
         if self.column_filename not in cols:
             raise Exception('Source "{}" had the filename_column "{}" '
                             'which is not a column of the provided data:\n{}'
-                            .format(self.name, self.filename_column, cols))
+                            .format(self.name, self.column_filename, cols))
 
     @classmethod
     def _parse_list(cls, uploadable_sources) -> list:

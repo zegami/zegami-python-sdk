@@ -229,7 +229,13 @@ class Workspace():
             if not os.path.exists(data):
                 raise FileNotFoundError('Data file "{}" doesn\'t exist'\
                                         .format(data))
-            data = pd.read_csv(data)
+            # Check the file extension
+            if data.split('.')[-1] == 'tsv':
+                data = pd.read_csv(data, delimiter='\t')
+            elif data.split('.')[-1] in ['xls', 'xlsx']:
+                data = pd.read_excel(data)
+            else:
+                data = pd.read_csv(data)
 
         # Check that all source filenames exist in the provided data
         if data is not None:
