@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# Copyright 2021 Zegami Ltd
+
+"""helper code."""
+
 import sys
 
 

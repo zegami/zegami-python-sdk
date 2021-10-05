@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
-"""
-Zegami Ltd.
-Apache 2.0
-"""
+# Copyright 2021 Zegami Ltd
+
+"""Annotation functionality."""
 
 import base64
 import io
 import os
+
 import numpy as np
 from PIL import Image
 
 
 class _Annotation():
-    ''' Base (abstract) class for annotations. '''
+    """Base (abstract) class for annotations."""
 
     # Define the string annotation TYPE in child classes
     TYPE = None
@@ -34,6 +34,7 @@ class _Annotation():
     @property
     def collection():
         pass
+
     @collection.getter
     def collection(self):
         return self._collection
@@ -41,6 +42,7 @@ class _Annotation():
     @property
     def source():
         pass
+
     @source.getter
     def source(self):
         return self._source
@@ -48,6 +50,7 @@ class _Annotation():
     @property
     def _image_index():
         pass
+
     @_image_index.getter
     def _image_index(self):
         assert 'image_index' in self._data.keys(), 'Annotation\'s _data did '\
@@ -57,6 +60,7 @@ class _Annotation():
     @property
     def row_index():
         pass
+
     @row_index.getter
     def row_index(self):
         lookup = self.collection._get_image_meta_lookup(self.source)
@@ -65,6 +69,7 @@ class _Annotation():
     @property
     def _imageset_id():
         pass
+
     @_imageset_id.getter
     def _imageset_id(self):
         return self.collection._get_imageset_id(self.source)
@@ -88,11 +93,12 @@ class _Annotation():
 class AnnotationMask(_Annotation):
     """An annotation comprising a bitmask and some metadata.
 
-    To view the maskas an image, use mask.view().
+    To view the masks an image, use mask.view().
 
     Note: Providing imageset_id and image_index is not mandatory and can be
     obtained automatically, but this is slow and can cause unnecessary
-    re-downloading of data. """
+    re-downloading of data.
+    """
 
     TYPE = 'mask'
     UPLOADABLE_DESCRIPTION = 'Mask annotation data includes the actual mask (as a base64 '\
@@ -163,6 +169,7 @@ class AnnotationMask(_Annotation):
     @property
     def mask_uint8():
         pass
+
     @mask_uint8.getter
     def mask_uint8(self):
         return self.mask_bool.astype(np.uint8) * 255
@@ -170,6 +177,7 @@ class AnnotationMask(_Annotation):
     @property
     def mask_bool():
         pass
+
     @mask_bool.getter
     def mask_bool(self):
         a = self._get_bool_arr()
@@ -191,9 +199,7 @@ class AnnotationMask(_Annotation):
 
     @staticmethod
     def parse_bool_masks(bool_masks):
-        ''' Checks the masks for correct data types, and ensures a shape of
-        [h, w, N]. '''
-
+        """Checks the masks for correct data types, and ensures a shape of [h, w, N]."""
         assert type(bool_masks) == np.ndarray,\
             'Expected bool_masks to be a numpy array, not {}'.format(type(bool_masks))
 
@@ -224,8 +230,7 @@ class AnnotationMask(_Annotation):
 
     @staticmethod
     def base64_to_boolmask(b64_data):
-        ''' Converts str base64 annotation data from Zegami into a boolean
-        mask. '''
+        """Converts str base64 annotation data from Zegami into a boolean mask."""
         if type(b64_data) is not str:
             raise TypeError('b64_data should be a str, not {}'.format(type(b64_data)))
         if b64_data.startswith('data:'):

@@ -1,11 +1,16 @@
+# -*- coding: utf-8 -*-
+# Copyright 2021 Zegami Ltd
+
 """
-Script to add image similarity clustering to a collection which predates the switch to using an output dataset.
+Script to add image similarity clustering to a collection.
+
+Predates the switch to using an output dataset.
 Requires a collection to have a fully populated scaled_imageset, which not all older collections do.
 Adds a new output dataset, and this field would need to be added to the collection document for this to work.
 """
 
-from zegami_sdk.client import ZegamiClient
 from zegami_sdk import nodes
+from zegami_sdk.client import ZegamiClient
 
 WORKSPACE_ID = ''
 COLLECTION_ID = ''

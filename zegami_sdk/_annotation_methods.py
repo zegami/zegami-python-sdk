@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
-"""@author: Zegami Ltd."""
+# Copyright 2021 Zegami Ltd
 
-import os
-import numpy as np
+"""private annotation methods."""
+
 import base64
+import os
+
+import numpy as np
 from PIL import Image
 
 
 def get_annotations_for_collection(self, collection, source=None, type='mask'):
-    """Gets all one type of annotations available for a given collection.
+    """
+    Gets all one type of annotations available for a given collection.
+
     Default as mask annotations.
 
     Optionally, provide a source index (integer) to retrieve only annotations
@@ -33,7 +38,7 @@ def get_annotations_for_collection(self, collection, source=None, type='mask'):
             'Provided source is too high for number of sources available '\
             '(index {} in list length {})'.format(source, len(srcs))
         url += '/source/{}'.format(source)
-    
+
     url += '?type={}'.format(type)
 
     # Perform the GET
@@ -43,10 +48,11 @@ def get_annotations_for_collection(self, collection, source=None, type='mask'):
 
 
 def get_annotations_for_image(self, collection, row_index, source=None, type='mask'):
-    """Gets one type of annotations for a single image in a collection.
-    Default as mask annotations.
+    """
+    Gets one type of annotations for a single image in a collection.
 
-    Specify the imageby giving its data row.
+    Default as mask annotations.
+    Specify the image by giving its data row.
     """
     assert source is None or type(source) == int and source >= 0,\
         'Expected source to be None or a positive int, not {}'.format(source)

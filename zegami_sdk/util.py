@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 23 16:37:17 2021.
+# Copyright 2021 Zegami Ltd
 
-@author: dougl
-"""
+"""util methods."""
+
 
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 import uuid
 
 import requests
-from urllib.parse import urlparse
 import urllib3
 
 
@@ -93,16 +92,13 @@ def _ensure_token(self, username, password, token, allow_save_token):
 
 def _get_token(self, username, password):
     """Gets the client's token using a username and password."""
-
     url = '{}/oauth/token/'.format(self.HOME)
-
     data = {'username': username, 'password': password, 'noexpire': True}
 
     r = requests.post(url, json=data)
 
     if r.status_code != 200:
-        raise Exception(f'Couldn\'t set token, bad response ({r.status_code})'
-                        '\nWas your username/password correct?')
+        raise Exception(f'Couldn\'t set token, bad response ({r.status_code}) Was your username/password correct?')
 
     j = r.json()
 
@@ -120,7 +116,7 @@ def _check_status(response, is_async_request=False):
 
 
 def _auth_get(self, url, return_response=False, **kwargs):
-    """Syncronous GET request. Used as standard over async currently.
+    """Synchronous GET request. Used as standard over async currently.
 
     If return_response == True, the response object is returned rather than
     its .json() output.
@@ -133,7 +129,7 @@ def _auth_get(self, url, return_response=False, **kwargs):
 
 
 def _auth_delete(self, url, **kwargs):
-    """Syncronous DELETE request. Used as standard over async currently.
+    """Synchronous DELETE request. Used as standard over async currently.
 
     Any additional kwargs are forwarded onto the requests.delete().
     """
@@ -143,7 +139,8 @@ def _auth_delete(self, url, **kwargs):
 
 
 def _auth_post(self, url, body, return_response=False, **kwargs):
-    """Syncronous POST request. Used as standard over async currently.
+    """Synchronous POST request. Used as standard over async currently.
+
     If return_response == True, the response object is returned rather than
     its .json() output.
     Any additional kwargs are forwarded onto the requests.post().
@@ -154,7 +151,8 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
 
 
 def _auth_put(self, url, body, return_response=False, **kwargs):
-    """Syncronous PUT request. Used as standard over async currently.
+    """Synchronous PUT request. Used as standard over async currently.
+
     If return_response == True, the response object is returned rather than
     its .json() output.
     Any additional kwargs are forwarded onto the requests.put().
@@ -166,6 +164,7 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
 
 def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1, blob_path=None):
     """Obtain a signed blob storage url.
+
     Returns:
         [dict]: blob storage urls
         [dict]: blob storage ids

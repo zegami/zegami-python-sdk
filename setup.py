@@ -1,5 +1,11 @@
+# -*- coding: utf-8 -*-
+# Copyright 2021 Zegami Ltd
+
+"""Setup code."""
+
 import os
 import pathlib
+
 from setuptools import setup
 
 # Update version here when you want to increment the version in PyPi
