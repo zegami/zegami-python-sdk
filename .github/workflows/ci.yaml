@@ -11,6 +11,9 @@ on:
   push:
     paths:
     - "**"
+  pull_request:
+    paths:
+    - "**"
 jobs:
   package:
     runs-on: ubuntu-18.04
