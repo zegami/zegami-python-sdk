@@ -14,6 +14,9 @@ on:
   pull_request:
     paths:
     - "**"
+  release:
+    types:
+    - published
 jobs:
   package:
     runs-on: ubuntu-18.04
@@ -41,3 +44,17 @@ jobs:
       with:
         name: archive
         path: dist/*.tar.gz
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        package: dist/*.tar.gz
+        version: ${{ github.ref }}
+        release: true
+        token: ${{ secrets.ZEGAMI_PYPI_TOKEN }}
+      if: github.event_name == 'release'
+    - uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        package: dist/*.whl
+        version: ${{ github.ref }}
+        release: true
+        token: ${{ secrets.ZEGAMI_PYPI_TOKEN }}
+      if: github.event_name == 'release'
