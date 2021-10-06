@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-"""
-Zegami Ltd.
+# Copyright 2021 Zegami Ltd
 
-Apache 2.0
-"""
+"""collection source functionality."""
 
-import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from glob import glob
+import os
+
+from tqdm import tqdm
 
 
 class Source():
@@ -20,6 +19,7 @@ class Source():
     @property
     def name():
         pass
+
     @name.getter
     def name(self):
         assert self._data, 'Source had no self._data set'
@@ -29,6 +29,7 @@ class Source():
     @property
     def collection():
         pass
+
     @collection.getter
     def collection(self):
         return self._collection
@@ -36,6 +37,7 @@ class Source():
     @property
     def id():
         pass
+
     @id.getter
     def id(self):
         assert self._data, 'Source had no self._data set'
@@ -45,6 +47,7 @@ class Source():
     @property
     def imageset_id():
         pass
+
     @imageset_id.getter
     def imageset_id(self):
         assert self._data, 'Source had no self._data set'
@@ -54,6 +57,7 @@ class Source():
     @property
     def _imageset_dataset_join_id():
         pass
+
     @_imageset_dataset_join_id.getter
     def _imageset_dataset_join_id(self):
         k = 'imageset_dataset_join_id'
@@ -90,10 +94,11 @@ class UploadableSource():
     )
 
     def __init__(self, name, image_dir, column_filename='Filename', recursive_search=True):
-        ''' Used in conjunction with create_collection(). An UploadableSource()
-        points towards and manages the upload of local files, resulting in the
-        generation of a true Source() in the collection. '''
+        """Used in conjunction with create_collection().
 
+        An UploadableSource() points towards and manages the upload of local files, resulting in the
+        generation of a true Source() in the collection.
+        """
         self.name = name
         self.image_dir = image_dir
         self.column_filename = column_filename
@@ -104,44 +109,46 @@ class UploadableSource():
 
         # Check the directory exists
         if not os.path.exists(image_dir):
-            raise FileNotFoundError('image_dir "{}" does not exist'\
-                                    .format(self.image_dir))
+            raise FileNotFoundError('image_dir "{}" does not exist'.format(self.image_dir))
         if not os.path.isdir(image_dir):
-            raise TypeError('image_dir "{}" is not a directory'\
-                            .format(self.image_dir))
+            raise TypeError('image_dir "{}" is not a directory'.format(self.image_dir))
 
         # Find all files matching the allowed mime-types
-        self.filepaths = sum([glob('{}/**/*{}'.format(image_dir, ext),
-            recursive=recursive_search) for ext in self.IMAGE_MIMES.keys()], [])
+        self.filepaths = sum(
+            [glob('{}/**/*{}'.format(image_dir, ext), recursive=recursive_search)
+                for ext in self.IMAGE_MIMES.keys()], [])
 
         self.filenames = [os.path.basename(fp) for fp in self.filepaths]
 
-        print('UploadableSource "{}" found {} images in "{}"'\
-              .format(self.name, len(self), image_dir))
+        print('UploadableSource "{}" found {} images in "{}"'.format(self.name, len(self), image_dir))
 
     @property
     def source():
         pass
+
     @source.getter
     def source(self) -> Source:
-        ''' An UploadableSource() is the gateway to uploading into a true
-        Zegami collection Source(). Once a collection is created and an empty
-        Source() exists, this reference points to it ready to upload to. '''
+        """An UploadableSource() is the gateway to uploading into a true Zegami collection Source().
 
+        Once a collection is created and an empty Source() exists, this reference points to it ready to upload to.
+        """
         if self._source is None:
-            raise Exception('UploadableSource\'s generated source has not '\
-                            'been set yet. This should be done automatically '\
-                            'after the blank collection has been generated. ')
+            raise Exception(
+                'UploadableSource\'s generated source has not been set yet. This should be done automatically '
+                'after the blank collection has been generated.'
+            )
         return self._source
 
     @property
     def index():
         pass
+
     @index.getter
     def index(self) -> int:
-        ''' The source index this UploadableSource is for. Only set after a
-        blank source has been generated ready to be uploaded to. '''
+        """The source index this UploadableSource is for.
 
+        Only set after a blank source has been generated ready to be uploaded to.
+        """
         if self._index is None:
             raise Exception('UploadableSource\'s generated source index has '
                             'not been set yet. This should be done '
@@ -152,6 +159,7 @@ class UploadableSource():
     @property
     def imageset_id():
         pass
+
     @imageset_id.getter
     def imageset_id(self):
         return self.source.imageset_id
@@ -160,9 +168,7 @@ class UploadableSource():
         return len(self.filepaths)
 
     def _register_source(self, index, source):
-        ''' Called to register a new (empty) Source() from a new collection
-        to this, ready for uploading data into. '''
-
+        """Called to register a new (empty) Source() from a new collection to this, ready for uploading data into."""
         if type(index) is not int:
             raise TypeError('index should be an int, not {}'.format(type(index)))
         if repr(type(source)) != repr(Source):
@@ -172,33 +178,34 @@ class UploadableSource():
         self._source = source
 
         if not self.source.name == self.name:
-            raise Exception('UploadableSource "{}" registered to Source "{}" '
-                            'when their names should match'\
-                            .format(self.name, self.source.name))
+            raise Exception(
+                'UploadableSource "{}" registered to Source "{}" when their names should match'
+                .format(self.name, self.source.name)
+            )
 
     def _upload(self):
-        ''' Uploads all images by filepath to the collection, provided a
-        Source() has been generated and designated to this instance. '''
+        """Uploads all images by filepath to the collection.
 
+        provided a Source() has been generated and designated to this instance.
+        """
         collection = self.source.collection
         c = collection.client
 
-        print('- Uploadable source {} "{}" beginning upload'\
-              .format(self.index, self.name))
+        print('- Uploadable source {} "{}" beginning upload'.format(self.index, self.name))
 
         # Tell the server how many uploads are expected for this source
-        url = '{}/{}/project/{}/imagesets/{}/extend'\
-            .format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
-        c._auth_post(url, body=None, json={ 'delta' : len(self) })
+        url = '{}/{}/project/{}/imagesets/{}/extend'.format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
+        c._auth_post(url, body=None, json={'delta': len(self)})
 
         # Obtain blob storage information
         blob_storage_urls, id_set = c._obtain_signed_blob_storage_urls(
-            collection.workspace_id, id_count=len(self))
+            collection.workspace_id, id_count=len(self), blob_path=f'imaegsets/{self.imageset_id}')
 
         # Check that numbers of values are still matching
         if not len(self) == len(blob_storage_urls):
-            raise Exception('Mismatch in blob urls count ({}) to filepath count ({})'\
-                            .format(len(blob_storage_urls), len(self)))
+            raise Exception(
+                'Mismatch in blob urls count ({}) to filepath count ({})'.format(len(blob_storage_urls), len(self))
+            )
 
         # Multiprocess upload the images
         bulk_info = []
@@ -211,10 +218,10 @@ class UploadableSource():
                 blob_url = blob_storage_urls[blob_id]
                 mime_type = self._get_mime_type(path)
                 bulk_info.append({
-                    'blob_id'   : blob_id,
-                    'name'      : os.path.basename(path),
-                    'size'      : os.path.getsize(path),
-                    'mimetype'  : mime_type
+                    'blob_id': blob_id,
+                    'name': os.path.basename(path),
+                    'size': os.path.getsize(path),
+                    'mimetype': mime_type
                 })
 
                 futures.append(ex.submit(self._upload_image, c, path, blob_url, mime_type))
@@ -235,12 +242,12 @@ class UploadableSource():
         # Upload bulk image info
         url = '{}/{}/project/{}/imagesets/{}/images_bulk?start=0'\
             .format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
-        c._auth_post(url, body=None, return_response=True, json={ 'images' : bulk_info })
+        c._auth_post(url, body=None, return_response=True, json={'images': bulk_info})
 
         print('- Finished uploading with {} failures'.format(failed))
 
     def _upload_image(self, client, path, blob_url, mime_type):
-        ''' Uploads a single image to the collection. '''
+        """Uploads a single image to the collection."""
         try:
             with open(path, 'rb') as f:
                 client._upload_to_signed_blob_storage_url(f, blob_url, mime_type)
@@ -252,38 +259,31 @@ class UploadableSource():
         if self.column_filename not in cols:
             raise Exception('Source "{}" had the filename_column "{}" '
                             'which is not a column of the provided data:\n{}'
-                            .format(self.name, self.filename_column, cols))
+                            .format(self.name, self.column_filename, cols))
 
     @classmethod
     def _parse_list(cls, uploadable_sources) -> list:
-        ''' Returns a checked list of instances. '''
-
+        """Returns a checked list of instances."""
         if isinstance(uploadable_sources, cls):
             uploadable_sources = [uploadable_sources]
         elif type(uploadable_sources) is not list:
-            raise TypeError('uploadable_sources should be a list of '\
-                            'UploadableSources')
+            raise TypeError('uploadable_sources should be a list of UploadableSources')
 
         for u in uploadable_sources:
             if not isinstance(u, UploadableSource):
-                raise TypeError('uploadable_sources should be a list of '\
-                                'source.UploadableSource() instances')
+                raise TypeError('uploadable_sources should be a list of source.UploadableSource() instances')
 
         names = [u.name for u in uploadable_sources]
         for name in names:
             if names.count(name) > 1:
-                raise ValueError('Two or more sources share the name "{}"'
-                                 .format(name))
+                raise ValueError('Two or more sources share the name "{}"'.format(name))
 
         return uploadable_sources
 
     @classmethod
     def _get_mime_type(cls, path) -> str:
-        ''' Gets the mime_type of the path. Raises an error if not a valid
-        image mime_type. '''
-
+        """Gets the mime_type of the path. Raises an error if not a valid image mime_type."""
         ext = os.path.splitext(path)[-1]
         if ext in cls.IMAGE_MIMES.keys():
             return cls.IMAGE_MIMES[ext]
-        raise TypeError('"{}" is not a supported image mime_type ({})'
-                        .format(path, cls.IMAGE_MIMES))
+        raise TypeError('"{}" is not a supported image mime_type ({})'.format(path, cls.IMAGE_MIMES))

@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# Copyright 2021 Zegami Ltd
+
+"""Create collection example."""
+
 from zegami_sdk.client import ZegamiClient
 
 WORKSPACE_ID = ''

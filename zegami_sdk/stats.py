@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Nov 30 11:50:44 2020.
+# Copyright 2021 Zegami Ltd
 
-@author: dougl
-"""
+"""stats functionality."""
 
 import pandas as pd
 
