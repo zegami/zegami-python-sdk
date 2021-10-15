@@ -218,7 +218,7 @@ class Workspace():
         uploadable_sources = UploadableSource._parse_list(uploadable_sources)
 
         # If using multi-source, must provide data
-        if data is None and len(uploadable_sources > 1):
+        if data is None and len(uploadable_sources) > 1:
             raise ValueError(
                 'If uploading more than one image source, data '
                 'is required to correctly join different images from each'
