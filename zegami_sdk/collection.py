@@ -349,6 +349,42 @@ class Collection():
 
         self._cached_rows = None
 
+    def save_image(self, url, target_folder_path='./', filename='image', extension='png'):
+        """
+        Downloads an image and saves to disk
+
+        For input, see Collection.get_image_urls().
+        """
+        if not os.path.exists(target_folder_path):
+            os.makedirs(target_folder_path)
+
+        r = self.client._auth_get(url, return_response=True, stream=True)
+        with open(target_folder_path + '/' + filename + '.' + extension, 'wb') as f:
+            f.write(r.content)
+
+    def save_image_batch(self, urls, target_folder_path='./', extension='png', max_workers=50, show_time_taken=True):
+        """
+        Downloads a batch of images and saves to disk.
+
+        Filenames are the imageset index followed by the specified extension.
+        For input, see Collection.get_image_urls().
+        """
+        def save_single(index, url):
+            self.save_image(url, target_folder_path, filename=str(index), extension=extension)
+            return index
+
+        t = time()
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures = [ex.submit(save_single, i, u) for i, u in enumerate(urls)]
+
+            images = {}
+            for f in as_completed(futures):
+                i = f.result()
+                images[i] = 1
+
+                if show_time_taken:
+                    print('\nDownloaded {} images in {:.2f} seconds.'.format(len(images), time() - t))
+
     def download_image(self, url):
         """
         Downloads an image into memory as a PIL.Image.
@@ -379,9 +415,9 @@ class Collection():
                 i, img = f.result()
                 images[i] = img
 
-        if show_time_taken:
-            print('\nDownloaded {} images in {:.2f} seconds.'.format(
-                len(images), time() - t))
+                if show_time_taken:
+                    print('\nDownloaded {} images in {:.2f} seconds.'.format(
+                        len(images), time() - t))
 
         # Results are a randomly ordered dictionary of results, so reorder them
         ordered = []
