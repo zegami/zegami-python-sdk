@@ -780,10 +780,8 @@ class CollectionV2(Collection):
         """
         c = self.client
         source = self._parse_source(source)
-        assert type(row_index) == int and row_index >= 0,\
-            'Expected row_index to be a positive int, not {}'.format(row_index)
 
-        lookup = self._get_image_meta_lookup()
+        lookup = self._get_image_meta_lookup(source)
         imageset_index = lookup[row_index]
         url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'.format(
             c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, anno_type)
