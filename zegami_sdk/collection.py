@@ -759,7 +759,7 @@ class CollectionV2(Collection):
         for s in ss:
             print('{} : {}'.format(s.imageset_id, s.name))
 
-    def get_annotations(self, source=0, type='mask') -> list:
+    def get_annotations(self, source=0, anno_type='mask') -> list:
         """
         Gets one type of annotations for a particular source of a collection.
 
@@ -769,10 +769,10 @@ class CollectionV2(Collection):
         source = self._parse_source(source)
 
         url = '{}/{}/project/{}/annotations/collection/{}/source/{}?type={}'.format(
-            c.HOME, c.API_1, self.workspace_id, self.id, source.id, type)
+            c.HOME, c.API_1, self.workspace_id, self.id, source.id, anno_type)
         return c._auth_get(url)
 
-    def get_annotations_for_image(self, row_index, source=0, type='mask') -> list:
+    def get_annotations_for_image(self, row_index, source=0, anno_type='mask') -> list:
         """
         Returns one type of annotations for a single item in the collection.
 
@@ -786,7 +786,7 @@ class CollectionV2(Collection):
         lookup = self._get_image_meta_lookup()
         imageset_index = lookup[row_index]
         url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'.format(
-            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, type)
+            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, anno_type)
 
         return c._auth_get(url)
 
