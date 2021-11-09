@@ -247,14 +247,14 @@ class Collection():
         rows = self.rows.iloc[list(row_indices)]
         return rows
 
-    def get_image_urls(self, rows, source=0, generate_signed_urls=False):
+    def get_image_urls(self, rows, source=0, generate_signed_urls=False, signed_expiry_days=None):
         """Converts rows into their corresponding image URLs.
 
         If generate_signed_urls is false the URLs require a token to download
         These urls can be passed to download_image()/download_image_batch().
 
         If generate_signed_urls is true the urls can be used to fetch the images directly
-        from blob storage, using a temporary access signature.
+        from blob storage, using a temporary access signature with an optionally specified lifetime.
         """
         # Turn the provided 'rows' into a list of ints
         if type(rows) == pd.DataFrame:
@@ -278,9 +278,12 @@ class Collection():
                 c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
                 i) for i in imageset_indices]
         else:
-            get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route'.format(
+            query = ''
+            if signed_expiry_days is not None:
+                query = '?expiry_days={}'.format(signed_expiry_days)
+            get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route{}'.format(
                 c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
-                i
+                i, query
             ) for i in imageset_indices]
             signed_route_urls = []
             for url in get_signed_urls:
