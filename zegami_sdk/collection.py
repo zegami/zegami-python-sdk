@@ -608,10 +608,16 @@ class Collection():
     @userdata.getter
     def userdata(self):
         c = self.client
-        url = '{}/{}/project/{}/collections/{}'.format(
-            c.HOME, c.API_0, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/collections/{}'.format(c.HOME, c.API_0, self.workspace_id, self.id)
         data = c._auth_get(url)['collection']
         userdata = data['userdata'] if 'userdata' in data.keys() else None
+        return userdata
+
+    def set_userdata(self, data):
+        """ Additively sets userdata. To remove data set its value to None. """
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(c.HOME, c.API_0, self.workspace_id, self.id)
+        userdata = c._auth_post(url, json.dumps(data))
         return userdata
 
     @property
@@ -673,8 +679,7 @@ class Collection():
 
         # POST
         c = self.client
-        url = '{}/{}/project/{}/collections/{}/userdata'.format(
-            c.HOME, c.API_0, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(c.HOME, c.API_0, self.workspace_id, self.id)
         c._auth_post(url, json.dumps(payload))
 
         print('New classes set:')
