@@ -210,6 +210,16 @@ class UploadableSource():
 
         return workloads, total_work, size
 
+    def get_threaded_workloads(self, executor, workloads):
+        threaded_workloads = []
+        for workload in workloads:
+            threaded_workloads.append(executor.submit(
+                self._upload_image_group,
+                workload['paths'],
+                workload['start']
+            ))
+        return threaded_workloads
+
     def _upload(self):
         """Uploads all images by filepath to the collection.
 
@@ -229,69 +239,22 @@ class UploadableSource():
         # Multiprocess upload the images
         # divide the filepaths into smaller groups
         # with ThreadPoolExecutor() as ex:
-
-        for workload in workloads:
-            paths = workload['paths']
-            start_index = workload['start']
-
-            self._upload_image_group(paths, start_index)
-            # TODO make this multithreaded
-
-            # ex.shutdown(wait=True)
-
-
-        # Obtain blob storage information
-        # blob_storage_urls, id_set = c._obtain_signed_blob_storage_urls(
-        #     collection.workspace_id, id_count=len(self), blob_path=f'imaegsets/{self.imageset_id}')
-
-        # # Check that numbers of values are still matching
-        # if not len(self) == len(blob_storage_urls):
-        #     raise Exception(
-        #         'Mismatch in blob urls count ({}) to filepath count ({})'.format(len(blob_storage_urls), len(self))
-        #     )
-
-        # # Multiprocess upload the images
-        # bulk_info = []
-        # with ThreadPoolExecutor() as ex:
-
-        #     # Submit the upload jobs
-        #     futures = []
-        #     for i, path in enumerate(self.filepaths):
-        #         blob_id = id_set['ids'][i]
-        #         blob_url = blob_storage_urls[blob_id]
-        #         mime_type = self._get_mime_type(path)
-        #         bulk_info.append({
-        #             'blob_id': blob_id,
-        #             'name': os.path.basename(path),
-        #             'size': os.path.getsize(path),
-        #             'mimetype': mime_type
-        #         })
-
-        #         futures.append(ex.submit(self._upload_image, c, path, blob_url, mime_type))
-
-        #     # Check for exceptions and update progress bar
-        #     failed = 0
-        #     with tqdm(total=len(futures), unit='image') as pbar:
-        #         for f in as_completed(futures):
-        #             try:
-        #                 f.result()
-        #             except Exception as e:
-        #                 print(e)
-        #                 failed += 1
-        #             pbar.update(1)
-
-        #     ex.shutdown(wait=True)
-
-        # Upload bulk image info
-        # url = '{}/{}/project/{}/imagesets/{}/images_bulk?start=0'\
-        #     .format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
-        # c._auth_post(url, body=None, return_response=True, json={'images': bulk_info})
-
-        # print('- Finished uploading with {} failures'.format(failed))
+        CONCURRENCY = 16
+        with ThreadPoolExecutor(CONCURRENCY) as executor:
+            threaded_workloads = self.get_threaded_workloads(executor, workloads)
+            kwargs = {
+                'total': len(threaded_workloads),
+                'unit': 'image',
+                'unit_scale': group_size,
+                'leave': True
+            }
+            for f in tqdm(as_completed(threaded_workloads), **kwargs):
+                pass
 
     def _upload_image_group(self, paths, start_index):
-        """
-        Upload a group of images. Item is a tuple comprising:
+        """Upload a group of images.
+
+        Item is a tuple comprising:
             - blob_id
             - blob_url
             - file path
@@ -305,8 +268,10 @@ class UploadableSource():
 
         # Check that numbers of values are still matching
         if not len(paths) == len(blob_storage_urls):
-            raise Exception('Mismatch in blob urls count ({}) to filepath count ({})'\
-                            .format(len(blob_storage_urls), len(self)))
+            raise Exception(
+                'Mismatch in blob urls count ({}) to filepath count ({})'
+                .format(len(blob_storage_urls), len(self))
+            )
 
         bulk_info = []
         for (i, path) in enumerate(paths):
@@ -322,7 +287,8 @@ class UploadableSource():
             self._upload_image(c, path, blob_url, mime_type)
 
         # Upload bulk image info
-        url = f'{c.HOME}/{c.API_0}/project/{coll.workspace_id}/imagesets/{self.imageset_id}/images_bulk?start={start_index}'
+        url = f'{c.HOME}/{c.API_0}/project/{coll.workspace_id}/imagesets/\
+            {self.imageset_id}/images_bulk?start={start_index}'
         c._auth_post(url, body=None, return_response=True, json={'images': bulk_info})
 
     def _upload_image(self, client, path, blob_url, mime_type):
