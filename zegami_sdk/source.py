@@ -249,7 +249,8 @@ class UploadableSource():
                 'leave': True
             }
             for f in tqdm(as_completed(threaded_workloads), **kwargs):
-                pass
+                if f.exception():
+                    raise f.exception()
 
     def _upload_image_group(self, paths, start_index):
         """Upload a group of images.
@@ -287,8 +288,10 @@ class UploadableSource():
             self._upload_image(c, path, blob_url, mime_type)
 
         # Upload bulk image info
-        url = f'{c.HOME}/{c.API_0}/project/{coll.workspace_id}/imagesets/\
-            {self.imageset_id}/images_bulk?start={start_index}'
+        url = (
+            f'{c.HOME}/{c.API_0}/project/{coll.workspace_id}/imagesets/{self.imageset_id}'
+            f'/images_bulk?start={start_index}'
+        )
         c._auth_post(url, body=None, return_response=True, json={'images': bulk_info})
 
     def _upload_image(self, client, path, blob_url, mime_type):
