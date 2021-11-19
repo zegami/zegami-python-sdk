@@ -6,6 +6,7 @@
 import base64
 import os
 
+
 import numpy as np
 from PIL import Image
 
