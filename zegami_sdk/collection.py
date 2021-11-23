@@ -279,7 +279,7 @@ class Collection():
             imageset_id = override_imageset_id
         else:
             imageset_id = self._get_imageset_id(source)
-            
+
         c = self.client
         if not generate_signed_urls:
             return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
