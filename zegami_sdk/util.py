@@ -12,6 +12,8 @@ import uuid
 import requests
 import urllib3
 
+ALLOW_INSECURE_SSL = os.environ.get('ALLOW_INSECURE_SSL', False)
+
 
 def __get_retry_adapter():
     retry_methods = urllib3.util.retry.Retry.DEFAULT_METHOD_WHITELIST.union(
@@ -29,6 +31,8 @@ def __get_retry_adapter():
 def _create_zegami_session(self):
     """Create a session object to centrally handle auth and retry policy."""
     s = requests.Session()
+    if ALLOW_INSECURE_SSL:
+        s.verify = False
     s.headers.update({
         'Authorization': 'Bearer {}'.format(self.token),
         'Content-Type': 'application/json',
@@ -45,6 +49,8 @@ def _create_zegami_session(self):
 def _create_blobstore_session(self):
     """Session object to centrally handle retry policy."""
     s = requests.Session()
+    if ALLOW_INSECURE_SSL:
+        s.verify = False
     adapter = __get_retry_adapter()
     s.mount('https://', adapter)
 
@@ -95,7 +101,7 @@ def _get_token(self, username, password):
     url = '{}/oauth/token/'.format(self.HOME)
     data = {'username': username, 'password': password, 'noexpire': True}
 
-    r = requests.post(url, json=data)
+    r = requests.post(url, json=data, verify=not ALLOW_INSECURE_SSL)
 
     if r.status_code != 200:
         raise Exception(f'Couldn\'t set token, bad response ({r.status_code}) Was your username/password correct?')
@@ -111,8 +117,11 @@ def _check_status(response, is_async_request=False):
     If allow is set to True, doesn't throw an exception.
     """
     code = response.status if is_async_request else response.status_code
+    response_message = 'Bad request response ({}): {}\n\nbody:\n{}'.format(
+        code, response.reason, response.text
+    )
 
-    assert response.ok, 'Bad request response ({}): {}\n\nbody:\n{}'.format(code, response.reason, response.text)
+    assert response.ok, response_message
 
 
 def _auth_get(self, url, return_response=False, **kwargs):
@@ -123,7 +132,7 @@ def _auth_get(self, url, return_response=False, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.get().
     """
-    r = self._zegami_session.get(url, **kwargs)
+    r = self._zegami_session.get(url, verify=not ALLOW_INSECURE_SSL, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -133,7 +142,9 @@ def _auth_delete(self, url, **kwargs):
 
     Any additional kwargs are forwarded onto the requests.delete().
     """
-    resp = self._zegami_session.delete(url, **kwargs)
+    resp = self._zegami_session.delete(
+        url, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     self._check_status(resp, is_async_request=False)
     return resp
 
@@ -145,7 +156,9 @@ def _auth_post(self, url, body, return_response=False, **kwargs):
     its .json() output.
     Any additional kwargs are forwarded onto the requests.post().
     """
-    r = self._zegami_session.post(url, body, **kwargs)
+    r = self._zegami_session.post(
+        url, body, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -157,7 +170,9 @@ def _auth_put(self, url, body, return_response=False, **kwargs):
     its .json() output.
     Any additional kwargs are forwarded onto the requests.put().
     """
-    r = self._zegami_session.put(url, body, **kwargs)
+    r = self._zegami_session.put(
+        url, body, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
@@ -191,5 +206,7 @@ def _upload_to_signed_blob_storage_url(self, data, url, mime_type, **kwargs):
     # https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
-    response = self._blobstore_session.put(url, data=data, headers=headers, **kwargs)
+    response = self._blobstore_session.put(
+        url, data=data, headers=headers, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     assert response.ok

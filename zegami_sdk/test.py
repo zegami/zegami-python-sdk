@@ -72,3 +72,11 @@ class TestSdkUtil(unittest.TestCase):
                 token=None, allow_save_token=True
             )
             self.assertNotEqual(os.path.getsize(self.local_token_path), 0)
+
+
+@unittest.mock.patch.dict(os.environ, {'ALLOW_INSECURE_SSL': 'True'})
+class TestSdkUtilVerifySSLFalse(TestSdkUtil):
+
+    @unittest.mock.patch.dict(os.environ, {'ALLOW_INSECURE_SSL': 'True'})
+    def setUp(self):
+        return super().setUp()
