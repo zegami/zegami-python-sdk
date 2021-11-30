@@ -247,7 +247,7 @@ class Collection():
         rows = self.rows.iloc[list(row_indices)]
         return rows
 
-    def get_image_urls(self, rows, source=0, generate_signed_urls=False, signed_expiry_days=None):
+    def get_image_urls(self, rows, source=0, generate_signed_urls=False, signed_expiry_days=None, override_imageset_id=None):
         """Converts rows into their corresponding image URLs.
 
         If generate_signed_urls is false the URLs require a token to download
@@ -255,6 +255,9 @@ class Collection():
 
         If generate_signed_urls is true the urls can be used to fetch the images directly
         from blob storage, using a temporary access signature with an optionally specified lifetime.
+
+        By default the uploaded images are fetched, but it's possible to fech e.g. the thumbnails
+        only, by providing an alternative imageset id.
         """
         # Turn the provided 'rows' into a list of ints
         if type(rows) == pd.DataFrame:
@@ -272,17 +275,22 @@ class Collection():
         imageset_indices = [lookup[i] for i in indices]
 
         # Convert these into URLs
+        if override_imageset_id is not None:
+            imageset_id = override_imageset_id
+        else:
+            imageset_id = self._get_imageset_id(source)
+
         c = self.client
         if not generate_signed_urls:
             return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
-                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
+                c.HOME, c.API_0, self.workspace_id, imageset_id,
                 i) for i in imageset_indices]
         else:
             query = ''
             if signed_expiry_days is not None:
                 query = '?expiry_days={}'.format(signed_expiry_days)
             get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route{}'.format(
-                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
+                c.HOME, c.API_0, self.workspace_id, imageset_id,
                 i, query
             ) for i in imageset_indices]
             signed_route_urls = []
@@ -611,10 +619,16 @@ class Collection():
     @userdata.getter
     def userdata(self):
         c = self.client
-        url = '{}/{}/project/{}/collections/{}'.format(
-            c.HOME, c.API_0, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/collections/{}'.format(c.HOME, c.API_0, self.workspace_id, self.id)
         data = c._auth_get(url)['collection']
         userdata = data['userdata'] if 'userdata' in data.keys() else None
+        return userdata
+
+    def set_userdata(self, data):
+        """ Additively sets userdata. To remove data set its value to None. """
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(c.HOME, c.API_0, self.workspace_id, self.id)
+        userdata = c._auth_post(url, json.dumps(data))
         return userdata
 
     @property
@@ -676,8 +690,7 @@ class Collection():
 
         # POST
         c = self.client
-        url = '{}/{}/project/{}/collections/{}/userdata'.format(
-            c.HOME, c.API_0, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(c.HOME, c.API_0, self.workspace_id, self.id)
         c._auth_post(url, json.dumps(payload))
 
         print('New classes set:')
