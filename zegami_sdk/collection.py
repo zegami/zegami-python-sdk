@@ -247,7 +247,8 @@ class Collection():
         rows = self.rows.iloc[list(row_indices)]
         return rows
 
-    def get_image_urls(self, rows, source=0, generate_signed_urls=False, signed_expiry_days=None, override_imageset_id=None):
+    def get_image_urls(self, rows, source=0, generate_signed_urls=False,
+                       signed_expiry_days=None, override_imageset_id=None):
         """Converts rows into their corresponding image URLs.
 
         If generate_signed_urls is false the URLs require a token to download
