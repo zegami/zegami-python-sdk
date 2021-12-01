@@ -1,8 +1,6 @@
-"""
-Zegami Ltd.
+# Copyright 2021 Zegami Ltd
 
-Apache 2.0
-"""
+"""Nodes functionality."""
 
 
 def add_node(client, workspace, action, params={}, type="dataset",

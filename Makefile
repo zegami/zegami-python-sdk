@@ -18,4 +18,6 @@ shell:
 
 .PHONY: test
 test:
-	docker-compose run zegami_sdk python3 -m unittest discover
+	docker-compose run zegami_sdk bash -c \
+		"coverage run -m unittest discover && \
+		coverage report -m"

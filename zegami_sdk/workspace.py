@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
-"""
-Zegami Ltd.
+# Copyright 2021 Zegami Ltd
 
-Apache 2.0
-"""
-import os
+"""collection functionality."""
+
 import io
-import pandas as pd
+import os
 from urllib.parse import urlparse
 
 from azure.storage.blob import (
     ContainerClient,
     ContentSettings,
 )
+import pandas as pd
 
 from .collection import Collection
 from .helper import guess_data_mimetype
@@ -28,6 +27,7 @@ class Workspace():
     @property
     def id():
         pass
+
     @id.getter
     def id(self):
         assert 'id' in self._data.keys(), 'Workspace\'s data didn\'t have an \'id\' key'
@@ -36,6 +36,7 @@ class Workspace():
     @property
     def client():
         pass
+
     @client.getter
     def client(self):
         return self._client
@@ -43,6 +44,7 @@ class Workspace():
     @property
     def name():
         pass
+
     @name.getter
     def name(self):
         assert 'name' in self._data.keys(), 'Workspace\'s data didn\'t have a \'name\' key'
@@ -51,6 +53,7 @@ class Workspace():
     @property
     def collections():
         pass
+
     @collections.getter
     def collections(self):
         c = self._client
@@ -65,21 +68,21 @@ class Workspace():
         return [Collection._construct_collection(c, self, d) for d in collection_dicts]
 
     def get_collection_by_name(self, name) -> Collection:
-        ''' Obtains a collection by name (case-insensitive). '''
+        """Obtains a collection by name (case-insensitive)."""
         matches = list(filter(lambda c: c.name.lower() == name.lower(), self.collections))
         if len(matches) == 0:
             raise IndexError('Couldn\'t find a collection with the name \'{}\''.format(name))
         return matches[0]
 
     def get_collection_by_id(self, id) -> Collection:
-        ''' Obtains a collection by ID. '''
+        """Obtains a collection by ID."""
         matches = list(filter(lambda c: c.id == id, self.collections))
         if len(matches) == 0:
             raise IndexError('Couldn\'t find a collection with the ID \'{}\''.format(id))
         return matches[0]
 
     def show_collections(self) -> None:
-        ''' Prints this workspace's available collections. '''
+        """Prints this workspace's available collections."""
         cs = self.collections
         if not cs:
             print('No collections found')
@@ -90,24 +93,21 @@ class Workspace():
             print('{} : {}'.format(c.id, c.name))
 
     def _check_data(self) -> None:
-        ''' This object should have a populated self._data, runs a check. '''
+        """This object should have a populated self._data, runs a check."""
         if not self._data:
             raise ValueError('Workspace has no self._data set')
         if type(self._data) is not dict:
-            raise TypeError('Workspace didn\'t have a dict for its data ({})'\
-                            .format(type(self._data)))
+            raise TypeError('Workspace didn\'t have a dict for its data ({})'.format(type(self._data)))
 
     def get_storage_item(self, storage_id) -> io.BytesIO:
-        ''' Obtains an item in online-storage by its ID. '''
+        """Obtains an item in online-storage by its ID."""
         c = self._client
         url = '{}/{}/project/{}/storage/{}'.format(c.HOME, c.API_1, self.id, storage_id)
         resp = c._auth_get(url, return_response=True)
         return io.BytesIO(resp.content), resp.headers.get('content-type')
 
     def create_storage_item(self, data, mime_type=None, item_name=None) -> str:
-        ''' Creates and uploads data into online-storage. Returns its storage
-        ID. '''
-
+        """Creates and uploads data into online-storage. Returns its storage ID."""
         if not mime_type:
             mime_type = guess_data_mimetype(data)
 
@@ -137,7 +137,7 @@ class Workspace():
         return resp['id']
 
     def delete_storage_item(self, storage_id) -> bool:
-        ''' Deletes a storage item by ID. Returns the response's OK signal. '''
+        """Deletes a storage item by ID. Returns the response's OK signal."""
         c = self._client
         url = '{}/{}/project/{}/storage/{}'.format(c.HOME, c.API_1, self.id, storage_id)
         resp = c._auth_delete(url)
@@ -145,12 +145,11 @@ class Workspace():
 
     # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
     def _create_empty_collection(self, name, uploadable_sources, description='', **kwargs):
-        ''' Create an empty collection, ready for images and data. '''
-
+        """Create an empty collection, ready for images and data."""
         defaults = {
-            'version' : 2,
-            'dynamic' : False,
-            'upload_dataset' : { 'source' : { 'upload' : {} } }
+            'version': 2,
+            'dynamic': False,
+            'upload_dataset': {'source': {'upload': {}}}
         }
 
         for k, v in defaults.items():
@@ -165,9 +164,9 @@ class Workspace():
 
         # Data to generate the collection, including sparse sources with no data
         post_data = {
-            'name' : name,
-            'description' : description,
-            'image_sources' : [ { 'name' : s.name } for s in uploadable_sources ],
+            'name': name,
+            'description': description,
+            'image_sources': [{'name': s.name} for s in uploadable_sources],
             **kwargs
         }
 
@@ -178,9 +177,9 @@ class Workspace():
 
         return resp['collection']
 
-    def create_collection(self, name, uploadable_sources, data=None,
-                          description='', **kwargs):
-        ''' Create a collection with provided images and data.
+    def create_collection(self, name, uploadable_sources, data=None, description='', **kwargs):  # noqa: C901
+        """
+        Create a collection with provided images and data.
 
         A list of image sources (or just one) should be provided, built using
         Source.create_uploadable_source(). These instruct the SDK where to
@@ -213,23 +212,29 @@ class Workspace():
 
         - description:
             A description for the collection.
-        '''
-
+        """
         # Parse for a list of UploadableSources
         print('- Parsing uploadable source list')
         uploadable_sources = UploadableSource._parse_list(uploadable_sources)
 
         # If using multi-source, must provide data
-        if data is None and len(uploadable_sources > 1):
-            raise ValueError('If uploading more than one image source, data '\
-                'is required to correctly join different images from each')
+        if data is None and len(uploadable_sources) > 1:
+            raise ValueError(
+                'If uploading more than one image source, data '
+                'is required to correctly join different images from each'
+            )
 
         # Parse data
         if type(data) is str:
             if not os.path.exists(data):
-                raise FileNotFoundError('Data file "{}" doesn\'t exist'\
-                                        .format(data))
-            data = pd.read_csv(data)
+                raise FileNotFoundError('Data file "{}" doesn\'t exist'.format(data))
+            # Check the file extension
+            if data.split('.')[-1] == 'tsv':
+                data = pd.read_csv(data, delimiter='\t')
+            elif data.split('.')[-1] in ['xls', 'xlsx']:
+                data = pd.read_excel(data)
+            else:
+                data = pd.read_csv(data)
 
         # Check that all source filenames exist in the provided data
         if data is not None:
@@ -264,8 +269,10 @@ class Workspace():
             'data of shape {} rows x {} columns'\
             .format(len(data), len(data.columns))
 
-        print('- Finished collection "{}" upload using {} image source{} with {}'\
-              .format(name, len(uploadable_sources), plural_str, data_str))
+        print(
+            '- Finished collection "{}" upload using {} image source{} with {}'
+            .format(name, len(uploadable_sources), plural_str, data_str)
+        )
 
     def __len__(self):
         len(self.collections)

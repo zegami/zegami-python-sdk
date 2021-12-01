@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
-"""
-Zegami Ltd.
-Apache 2.0
-"""
+# Copyright 2021 Zegami Ltd
 
+"""base client functionality."""
 
-from .workspace import Workspace
 from .util import (
+    _auth_delete,
     _auth_get,
     _auth_post,
     _auth_put,
-    _auth_delete,
-    _create_zegami_session,
+    _check_status,
     _create_blobstore_session,
+    _create_zegami_session,
     _ensure_token,
     _get_token,
     _get_token_name,
-    _check_status,
     _obtain_signed_blob_storage_urls,
     _upload_to_signed_blob_storage_url
 )
+from .workspace import Workspace
 
 DEFAULT_HOME = 'https://zegami.com'
 

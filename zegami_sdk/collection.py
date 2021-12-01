@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
-'''
-Zegami Ltd.
-Apache 2.0
-'''
+# Copyright 2021 Zegami Ltd
 
+"""collection functionality."""
+
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from io import BytesIO
+import json
 import os
+from time import time
+
 import pandas as pd
 from PIL import Image
-from time import time
-import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from .source import Source
 
 
@@ -18,11 +19,11 @@ class Collection():
 
     @staticmethod
     def _construct_collection(client, workspace, collection_dict, allow_caching=True):
-        '''Use this to instantiate Collection instances.
+        """Use this to instantiate Collection instances.
 
         Requires an instantiated ZegamiClient, a Workspace instance, and the data
         describing the collection.
-        '''
+        """
         assert type(collection_dict) == dict,\
             'Expected collection_dict to be a dict, not {}'.format(collection_dict)
         v = collection_dict['version'] if 'version' in collection_dict.keys() else 1
@@ -32,11 +33,11 @@ class Collection():
             return CollectionV2(client, workspace, collection_dict, allow_caching)
 
     def __init__(self, client, workspace, collection_dict, allow_caching=True):
-        '''!! STOP !! Don't instantiate using Collection(x, y, z).
+        """!! STOP !! Don't instantiate using Collection(x, y, z).
 
         Use Collection._construct_collection(x, y, z) instead.
         It will determine which subclass is appropriate.
-        '''
+        """
         self._client = client
         self._data = collection_dict
         self._workspace = workspace
@@ -55,6 +56,7 @@ class Collection():
     @property
     def client():
         pass
+
     @client.getter
     def client(self):
         assert self._client, 'Client is not valid'
@@ -63,6 +65,7 @@ class Collection():
     @property
     def name():
         pass
+
     @name.getter
     def name(self) -> str:
         self._check_data()
@@ -73,6 +76,7 @@ class Collection():
     @property
     def id():
         pass
+
     @id.getter
     def id(self):
         self._check_data()
@@ -83,6 +87,7 @@ class Collection():
     @property
     def _dataset_id():
         pass
+
     @_dataset_id.getter
     def _dataset_id(self) -> str:
         self._check_data()
@@ -93,6 +98,7 @@ class Collection():
     @property
     def _upload_dataset_id():
         pass
+
     @_upload_dataset_id.getter
     def _upload_dataset_id(self) -> str:
         self._check_data()
@@ -103,6 +109,7 @@ class Collection():
     @property
     def version():
         pass
+
     @version.getter
     def version(self):
         self._check_data()
@@ -111,6 +118,7 @@ class Collection():
     @property
     def workspace():
         pass
+
     @workspace.getter
     def workspace(self):
         return self._workspace
@@ -118,6 +126,7 @@ class Collection():
     @property
     def workspace_id():
         pass
+
     @workspace_id.getter
     def workspace_id(self):
         assert self.workspace is not None,\
@@ -127,6 +136,7 @@ class Collection():
     @property
     def url():
         pass
+
     @url.getter
     def url(self):
         return '{}/collections/{}-{}'.format(
@@ -135,6 +145,7 @@ class Collection():
     @property
     def sources():
         pass
+
     @sources.getter
     def sources(self):
         if self.version < 2:
@@ -148,9 +159,10 @@ class Collection():
     @property
     def rows():
         pass
+
     @rows.getter
     def rows(self):
-        '''Returns all data rows of the collection as a Pandas DataFrame.'''
+        """Returns all data rows of the collection as a Pandas DataFrame."""
         if self.allow_caching and self._cached_rows is not None:
             return self._cached_rows
 
@@ -181,6 +193,7 @@ class Collection():
     @property
     def tags():
         pass
+
     @tags.getter
     def tags(self):
         return self._get_tag_indices()
@@ -188,6 +201,7 @@ class Collection():
     @property
     def status():
         pass
+
     @status.getter
     def status(self):
         details_url = f'{self.client.HOME}/{self.client.API_0}/project/{self.workspace_id}/collections/{self.id}'
@@ -195,7 +209,7 @@ class Collection():
         return resp['collection']['status']
 
     def get_rows_by_filter(self, filters):
-        '''Gets rows of metadata in a collection by a flexible filter.
+        """Gets rows of metadata in a collection by a flexible filter.
 
         The filter should be a dictionary describing what to permit through
         any specified columns.
@@ -205,7 +219,7 @@ class Collection():
 
         This would only return rows whose 'breed' column matches 'Cairn'
         or 'Dingo'.
-        '''
+        """
         assert type(filters) == dict, 'Filters should be a dict.'
         rows = self.rows
 
@@ -216,13 +230,13 @@ class Collection():
         return rows
 
     def get_rows_by_tags(self, tag_names):
-        '''Gets rows of metadata in a collection by a list of tag_names.
+        """Gets rows of metadata in a collection by a list of tag_names.
 
         Example:
             tag_names = ['name1', 'name2']
 
         This would return rows which has tags in the tag_names.
-        '''
+        """
         assert type(tag_names) == list,\
             'Expected tag_names to be a list, not a {}'.format(type(tag_names))
 
@@ -233,15 +247,19 @@ class Collection():
         rows = self.rows.iloc[list(row_indices)]
         return rows
 
-    def get_image_urls(self, rows, source=0, generate_signed_urls=False):
-        '''Converts rows into their corresponding image URLs.
+    def get_image_urls(self, rows, source=0, generate_signed_urls=False,
+                       signed_expiry_days=None, override_imageset_id=None):
+        """Converts rows into their corresponding image URLs.
 
         If generate_signed_urls is false the URLs require a token to download
         These urls can be passed to download_image()/download_image_batch().
 
         If generate_signed_urls is true the urls can be used to fetch the images directly
-        from blob storage, using a temporary access signature.
-        '''
+        from blob storage, using a temporary access signature with an optionally specified lifetime.
+
+        By default the uploaded images are fetched, but it's possible to fech e.g. the thumbnails
+        only, by providing an alternative imageset id.
+        """
         # Turn the provided 'rows' into a list of ints
         if type(rows) == pd.DataFrame:
             indices = list(rows.index)
@@ -258,15 +276,23 @@ class Collection():
         imageset_indices = [lookup[i] for i in indices]
 
         # Convert these into URLs
+        if override_imageset_id is not None:
+            imageset_id = override_imageset_id
+        else:
+            imageset_id = self._get_imageset_id(source)
+
         c = self.client
         if not generate_signed_urls:
             return ['{}/{}/project/{}/imagesets/{}/images/{}/data'.format(
-                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
+                c.HOME, c.API_0, self.workspace_id, imageset_id,
                 i) for i in imageset_indices]
         else:
-            get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route'.format(
-                c.HOME, c.API_0, self.workspace_id, self._get_imageset_id(source),
-                i
+            query = ''
+            if signed_expiry_days is not None:
+                query = '?expiry_days={}'.format(signed_expiry_days)
+            get_signed_urls = ['{}/{}/project/{}/imagesets/{}/images/{}/signed_route{}'.format(
+                c.HOME, c.API_0, self.workspace_id, imageset_id,
+                i, query
             ) for i in imageset_indices]
             signed_route_urls = []
             for url in get_signed_urls:
@@ -275,24 +301,28 @@ class Collection():
             return signed_route_urls
 
     def download_annotation(self, annotation_id):
-        ''' Converts an annotation_id into downloaded annotation data.
+        """
+        Converts an annotation_id into downloaded annotation data.
+
         This will vary in content depending on the annotation type and
-        format. '''
+        format.
+        """
         zc = self.client
         url = '{}/{}/project/{}/annotations/{}'.format(
             zc.HOME, zc.API_1, self.workspace.id, annotation_id)
         return zc._auth_get(url)
 
     def replace_data(self, data):
-        ''' Replaces the data in the collection.
+        """
+        Replaces the data in the collection.
 
         The provided input should be a pandas dataframe or a local
         csv/json/tsv/txt/xlsx/xls file. If a xlsx/xls file is used only data
         from the default sheet will be fetched. The rows take time to be
         updated, hence checking the status of the collection with coll.status,
         might be helpful if you need to ensure that you're using the updated
-        data rows. '''
-
+        data rows.
+        """
         if type(data) == pd.DataFrame:
             tsv = data.to_csv(sep='\t', index=False)
             upload_data = bytes(tsv, 'utf-8')
@@ -313,7 +343,10 @@ class Collection():
         mime_type = 'application/octet-stream'
 
         # create blob storage and upload to it
-        urls, id_set = zeg_client._obtain_signed_blob_storage_urls(self.workspace_id)
+        urls, id_set = zeg_client._obtain_signed_blob_storage_urls(
+            self.workspace_id,
+            blob_path=f'datasets/{self._upload_dataset_id}'
+        )
         blob_id = id_set['ids'][0]
         url = urls[blob_id]
         zeg_client._upload_to_signed_blob_storage_url(upload_data, url, mime_type)
@@ -328,22 +361,60 @@ class Collection():
 
         self._cached_rows = None
 
+    def save_image(self, url, target_folder_path='./', filename='image', extension='png'):
+        """
+        Downloads an image and saves to disk
+
+        For input, see Collection.get_image_urls().
+        """
+        if not os.path.exists(target_folder_path):
+            os.makedirs(target_folder_path)
+
+        r = self.client._auth_get(url, return_response=True, stream=True)
+        with open(target_folder_path + '/' + filename + '.' + extension, 'wb') as f:
+            f.write(r.content)
+
+    def save_image_batch(self, urls, target_folder_path='./', extension='png', max_workers=50, show_time_taken=True):
+        """
+        Downloads a batch of images and saves to disk.
+
+        Filenames are the imageset index followed by the specified extension.
+        For input, see Collection.get_image_urls().
+        """
+        def save_single(index, url):
+            self.save_image(url, target_folder_path, filename=str(index), extension=extension)
+            return index
+
+        t = time()
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures = [ex.submit(save_single, i, u) for i, u in enumerate(urls)]
+
+            images = {}
+            for f in as_completed(futures):
+                i = f.result()
+                images[i] = 1
+
+                if show_time_taken:
+                    print('\nDownloaded {} images in {:.2f} seconds.'.format(len(images), time() - t))
+
     def download_image(self, url):
-        ''' Downloads an image into memory as a PIL.Image.
+        """
+        Downloads an image into memory as a PIL.Image.
 
-        For input, see Collection.get_image_urls(). '''
-
+        For input, see Collection.get_image_urls().
+        """
         r = self.client._auth_get(url, return_response=True, stream=True)
         r.raw.decode = True
         return Image.open(r.raw)
 
     def download_image_batch(self, urls, max_workers=50, show_time_taken=True):
-        ''' Downloads multiple images into memory (each as a PIL.Image) concurrently.
+        """
+        Downloads multiple images into memory (each as a PIL.Image) concurrently.
 
         Please be aware that these images are being downloaded into memory,
         if you download a huge collection of images you may eat up your
-        RAM! '''
-
+        RAM!
+        """
         def download_single(index, url):
             return (index, self.download_image(url))
 
@@ -356,9 +427,9 @@ class Collection():
                 i, img = f.result()
                 images[i] = img
 
-        if show_time_taken:
-            print('\nDownloaded {} images in {:.2f} seconds.'.format(
-                len(images), time() - t))
+                if show_time_taken:
+                    print('\nDownloaded {} images in {:.2f} seconds.'.format(
+                        len(images), time() - t))
 
         # Results are a randomly ordered dictionary of results, so reorder them
         ordered = []
@@ -367,8 +438,7 @@ class Collection():
         return ordered
 
     def delete_images_with_tag(self, tag='delete'):
-        ''' Delete all the images in the collection with the tag 'delete'.s '''
-
+        """Delete all the images in the collection with the tag 'delete'.s."""
         row_indices = set()
         if tag in self.tags.keys():
             row_indices.update(self.tags[tag])
@@ -383,8 +453,7 @@ class Collection():
             print(f'\nDeleted {len(urls)} images')
 
     def _get_tag_indices(self):
-        ''' Returns collection tags indices. '''
-
+        """Returns collection tags indices."""
         c = self.client
         url = '{}/{}/project/{}/collections/{}/tags'.format(
             c.HOME, c.API_1, self.workspace_id, self.id)
@@ -392,9 +461,7 @@ class Collection():
         return self._parse_tags(response['tagRecords'])
 
     def _parse_tags(self, tag_records):
-        ''' Parses tag indices into a list of tags, each with an list of
-        indices. '''
-
+        """Parses tag indices into a list of tags, each with an list of indices."""
         tags = {}
         for record in tag_records:
             if record['tag'] not in tags.keys():
@@ -403,20 +470,19 @@ class Collection():
         return tags
 
     def get_annotations(self, anno_type='mask') -> dict:
-        ''' Returns one type of annotations attached to the collection.
-        Default as mask annotations. '''
+        """
+        Returns one type of annotations attached to the collection.
 
+        Default as mask annotations.
+        """
         c = self.client
         url = '{}/{}/project/{}/annotations/collection/{}?type={}'.format(
             c.HOME, c.API_1, self.workspace_id, self.id, anno_type)
 
         return c._auth_get(url)
 
-    def get_annotations_for_image(self, row_index, source=None,
-                                  anno_type='mask') -> list:
-        ''' Returns one type of annotations for a single item in the
-        collection. Default as mask annotations. '''
-
+    def get_annotations_for_image(self, row_index, source=None, anno_type='mask') -> list:
+        """Returns one type of annotations for a single item in the collection. Default as mask annotations."""
         if source is not None:
             self._source_warning()
 
@@ -428,14 +494,13 @@ class Collection():
         imageset_index = lookup[row_index]
 
         url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'\
-            .format(c.HOME, c.API_1, self.workspace_id,
-                    self._get_imageset_id(), imageset_index, anno_type)
+            .format(c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, anno_type)
 
         return c._auth_get(url)
 
-    def upload_annotation(self, uploadable, row_index=None, image_index=None,
-                          source=None, author=None, debug=False):
-        ''' Uploads an annotation to Zegami.
+    def upload_annotation(self, uploadable, row_index=None, image_index=None, source=None, author=None, debug=False):
+        """
+        Uploads an annotation to Zegami.
 
         Requires uploadable annotation data (see
         AnnotationClass.create_uploadable()), the row index of the image the
@@ -445,8 +510,8 @@ class Collection():
 
         Optionally provide an author, which for an inference result should
         probably some identifier for the model. If nothing is provided, the
-        ZegamiClient's .name property will be used. '''
-
+        ZegamiClient's .name property will be used.
+        """
         source = None if self.version == 1 else self._parse_source(source)
         imageset_id = self._get_imageset_id(source)
         image_meta_lookup = self._get_image_meta_lookup(source)
@@ -511,9 +576,7 @@ class Collection():
         return r
 
     def delete_annotation(self, annotation_id):
-        ''' Delete an annotation by its ID. These are obtainable using the
-        get_annotations...() methods. '''
-
+        """Delete an annotation by its ID. These are obtainable using the get_annotations...() methods."""
         c = self.client
         url = '{}/{}/project/{}/annotations/{}'\
             .format(c.HOME, c.API_1, self.workspace_id, annotation_id)
@@ -525,8 +588,7 @@ class Collection():
         return r
 
     def delete_all_annotations(self, source=0):
-        ''' Deletes all annotations saved to the collection. '''
-
+        """Deletes all annotations saved to the collection."""
         # A list of sources of annotations
         anno_sources = self.get_annotations()['sources']
 
@@ -554,13 +616,20 @@ class Collection():
     @property
     def userdata():
         pass
+
     @userdata.getter
     def userdata(self):
         c = self.client
-        url = '{}/{}/project/{}/collections/{}'.format(
-            c.HOME, c.API_0, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/collections/{}'.format(c.HOME, c.API_0, self.workspace_id, self.id)
         data = c._auth_get(url)['collection']
         userdata = data['userdata'] if 'userdata' in data.keys() else None
+        return userdata
+
+    def set_userdata(self, data):
+        """ Additively sets userdata. To remove data set its value to None. """
+        c = self.client
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(c.HOME, c.API_0, self.workspace_id, self.id)
+        userdata = c._auth_post(url, json.dumps(data))
         return userdata
 
     @property
@@ -569,8 +638,10 @@ class Collection():
 
     @classes.getter
     def classes(self) -> list:
-        ''' Property for the class configuration of the collection. Used in
-        an annotation workflow to tell Zegami how to treat defined classes.
+        """
+        Property for the class configuration of the collection.
+
+        Used in an annotation workflow to tell Zegami how to treat defined classes.
 
         To set new classes, provide a list of class dictionaries of shape:
 
@@ -586,8 +657,7 @@ class Collection():
                 'id'    : 1             # The unique integer class ID
             }
         ]
-        '''
-
+        """
         u = self.userdata
         return list(u['classes'].values()) if u is not None and 'classes' in u.keys() else []
 
@@ -621,8 +691,7 @@ class Collection():
 
         # POST
         c = self.client
-        url = '{}/{}/project/{}/collections/{}/userdata'.format(
-            c.HOME, c.API_0, self.workspace_id, self.id)
+        url = '{}/{}/project/{}/collections/{}/userdata'.format(c.HOME, c.API_0, self.workspace_id, self.id)
         c._auth_post(url, json.dumps(payload))
 
         print('New classes set:')
@@ -692,6 +761,7 @@ class CollectionV2(Collection):
     @property
     def sources():
         pass
+
     @sources.getter
     def sources(self) -> list:
         assert 'image_sources' in self._data.keys(),\
@@ -700,46 +770,46 @@ class CollectionV2(Collection):
         return [Source(self, s) for s in self._data['image_sources']]
 
     def show_sources(self):
-        ''' Lists the IDs and names of all sources in the collection. '''
-
+        """Lists the IDs and names of all sources in the collection."""
         ss = self.sources
         print('\nImage sources ({}):'.format(len(ss)))
         for s in ss:
-            print('{} : {}'.format(s._imageset_id, s.name))
+            print('{} : {}'.format(s.imageset_id, s.name))
 
-    def get_annotations(self, source=0, type='mask') -> list:
-        ''' Gets one type of annotations for a particular source of a collection.
-        Default as mask annotations. '''
+    def get_annotations(self, source=0, anno_type='mask') -> list:
+        """
+        Gets one type of annotations for a particular source of a collection.
 
+        Default as mask annotations.
+        """
         c = self.client
         source = self._parse_source(source)
 
         url = '{}/{}/project/{}/annotations/collection/{}/source/{}?type={}'.format(
-            c.HOME, c.API_1, self.workspace_id, self.id, source.id, type)
+            c.HOME, c.API_1, self.workspace_id, self.id, source.id, anno_type)
         return c._auth_get(url)
 
-    def get_annotations_for_image(self, row_index, source=0, type='mask') -> list:
-        ''' Returns one type of annotations for a single item in the collection.
-        Default as mask annotations. '''
+    def get_annotations_for_image(self, row_index, source=0, anno_type='mask') -> list:
+        """
+        Returns one type of annotations for a single item in the collection.
 
+        Default as mask annotations.
+        """
         c = self.client
         source = self._parse_source(source)
-        assert type(row_index) == int and row_index >= 0,\
-            'Expected row_index to be a positive int, not {}'.format(row_index)
 
-        lookup = self._get_image_meta_lookup()
+        lookup = self._get_image_meta_lookup(source)
         imageset_index = lookup[row_index]
         url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'.format(
-            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, type)
+            c.HOME, c.API_1, self.workspace_id, self._get_imageset_id(), imageset_index, anno_type)
 
         return c._auth_get(url)
 
     def _get_imageset_id(self, source=0) -> str:
-        ''' Source can be an int or a Source instance from this collection. '''
-
+        """Source can be an int or a Source instance from this collection."""
         self._check_data()
         self._check_version()
-        return self._parse_source(source)._imageset_id
+        return self._parse_source(source).imageset_id
 
     def _get_image_meta_lookup(self, source=0) -> list:
         self._check_data()
@@ -747,9 +817,7 @@ class CollectionV2(Collection):
         return self._join_id_to_lookup(join_id)
 
     def _parse_source(self, source):
-        '''Accepts an int or a Source instance and always returns a checked
-        Source instance.'''
-
+        """Accepts an int or a Source instance and always returns a checked Source instance."""
         ss = self.sources
 
         # If an index is given, check the index is sensible and return a Source

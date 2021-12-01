@@ -1,5 +1,10 @@
-from zegami_sdk.client import ZegamiClient
+# -*- coding: utf-8 -*-
+# Copyright 2021 Zegami Ltd
+
+"""Add Classification Example."""
+
 from zegami_sdk import nodes
+from zegami_sdk.client import ZegamiClient
 
 WORKSPACE_ID = ''
 COLLECTION_ID = ''
