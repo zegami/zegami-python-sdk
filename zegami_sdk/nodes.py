@@ -20,8 +20,6 @@ def add_node(client, workspace, action, params={}, type="dataset",
         'source': source,
     }
 
-    print(payload)
-
     url = '{}/{}/project/{}/{}'.format(
         client.HOME, client.API_0, workspace.id, type + 's'
     )
@@ -79,16 +77,16 @@ def _get_null_imageset_entries(client, workspace, node_id):
     Get the indices of all image info entries which are null
     """
     images_info = _get_imageset_images(client, workspace, node_id)
-    indices = [i for i, info in enumerate(images_info) if info == None]
+    indices = [i for i, info in enumerate(images_info) if info is None]
     return indices
 
 
 def _create_tasks_for_null_entries(client, workspace, node_id):
     """
     Trigger creation of tasks for any entries in the imageset which are null.
-    Only intended for use with upload imagesets
+    This can happen as a result of failed database writes.
     """
     url = '{}/{}/project/{}/{}/{}/create_tasks_for_null'.format(
         client.HOME, client.API_1, workspace.id, "nodes", node_id
     )
-    resp = client._auth_post(url, None)
+    client._auth_post(url, None)
