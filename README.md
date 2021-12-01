@@ -82,6 +82,33 @@ first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
 coll.download_image(first_10_source3_img_urls[0])
 ```
 
+### Using with onprem zegami
+
+To use the client with an onprem installation of zegami you have to set the `home` keyword argument when instantiating `ZegamiClient`.
+
+```
+zegami_config = {
+  'username': <user>,
+  'password': <password>,
+  'home': <url of onprem zegami>,
+  'allow_save_token': True,
+}
+
+zc = ZegamiClient(**zegami_config)
+```
+
+If your onprem installation has self-signed certificates you can disable SSL verification using the environment variable `ALLOW_INSECURE_SSL` before running the python.
+
+```
+export ALLOW_INSECURE_SSL=true
+python myscript.py
+```
+or
+```
+ALLOW_INSECURE_SSL=true python myscript.py
+```
+WARNING! You should not need to set this when using the SDK for cloud zegami
+
 # In Development
 This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported currently - check back soon!
 

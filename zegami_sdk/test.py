@@ -5,6 +5,7 @@
 """SDK Integration Authentication tests."""
 
 import io
+import importlib
 import os
 from pathlib import Path
 import sys
@@ -72,3 +73,13 @@ class TestSdkUtil(unittest.TestCase):
                 token=None, allow_save_token=True
             )
             self.assertNotEqual(os.path.getsize(self.local_token_path), 0)
+
+
+@unittest.mock.patch.dict(os.environ, {'ALLOW_INSECURE_SSL': 'yes'})
+class TestSdkUtilVerifySSLFalse(TestSdkUtil):
+
+    @classmethod
+    @unittest.mock.patch.dict(os.environ, {'ALLOW_INSECURE_SSL': 'yes'})
+    def setUpClass(self):
+        importlib.reload(util)
+        return super().setUpClass()
