@@ -52,6 +52,7 @@ def _create_blobstore_session(self):
     if ALLOW_INSECURE_SSL:
         s.verify = False
     adapter = __get_retry_adapter()
+    s.mount('http://', adapter)
     s.mount('https://', adapter)
 
     self._blobstore_session = s
