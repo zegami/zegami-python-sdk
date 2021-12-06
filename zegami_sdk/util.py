@@ -117,12 +117,12 @@ def _check_status(response, is_async_request=False):
 
     If allow is set to True, doesn't throw an exception.
     """
-    code = response.status if is_async_request else response.status_code
-    response_message = 'Bad request response ({}): {}\n\nbody:\n{}'.format(
-        code, response.reason, response.text
-    )
-
-    assert response.ok, response_message
+    if not response.ok:
+        code = response.status if is_async_request else response.status_code
+        response_message = 'Bad request response ({}): {}\n\nbody:\n{}'.format(
+            code, response.reason, response.text
+        )
+        raise AssertionError(response_message)
 
 
 def _auth_get(self, url, return_response=False, **kwargs):
