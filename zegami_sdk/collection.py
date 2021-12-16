@@ -12,7 +12,7 @@ from time import time
 import pandas as pd
 from PIL import Image
 
-from .source import Source
+from .source import Source, UploadableSource
 
 
 class Collection():
@@ -660,6 +660,56 @@ class Collection():
         """
         u = self.userdata
         return list(u['classes'].values()) if u is not None and 'classes' in u.keys() else []
+
+    def add_images(self, uploadable_sources, data=None):
+        """
+        Add more images to a collection, given a set of uploadable_sources and optional data rows.
+        See workspace.create_collection for details of these arguments.
+        Note that the images won't appear in the collection unless rows are provided referencing them.
+        """
+        uploadable_sources = UploadableSource._parse_list(uploadable_sources)
+
+        # If using multi-source, must provide data
+        if data is None and len(uploadable_sources) > 1:
+            raise ValueError(
+                'If uploading more than one image source, data '
+                'is required to correctly join different images from each'
+            )
+
+        # Parse data
+        if type(data) is str:
+            if not os.path.exists(data):
+                raise FileNotFoundError('Data file "{}" doesn\'t exist'.format(data))
+            # Check the file extension
+            if data.split('.')[-1] == 'tsv':
+                data = pd.read_csv(data, delimiter='\t')
+            elif data.split('.')[-1] in ['xls', 'xlsx']:
+                data = pd.read_excel(data)
+            else:
+                data = pd.read_csv(data)
+
+        # Check that all source filenames exist in the provided data
+        if data is not None:
+            print('- Checking data matches uploadable sources')
+            for s in uploadable_sources:
+                s._check_in_data(data)
+
+        import pdb; pdb.set_trace()
+        # append rows to data
+        new_rows = self.rows.append(data)
+
+        print(new_rows)
+
+        self.replace_data(new_rows)
+
+        # validate and register uploadable sources against existing sources
+        for s in uploadable_sources:
+            for i, us in enumerate(uploadable_sources):
+                us._register_source(i, self.sources[i])
+
+        # upload
+        for us in uploadable_sources:
+            us._upload()
 
     @classes.setter
     def classes(self, classes):  # noqa: C901
