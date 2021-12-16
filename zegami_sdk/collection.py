@@ -661,7 +661,7 @@ class Collection():
         u = self.userdata
         return list(u['classes'].values()) if u is not None and 'classes' in u.keys() else []
 
-    def add_images(self, uploadable_sources, data=None):
+    def add_images(self, uploadable_sources, data=None):  # noqa: C901
         """
         Add more images to a collection, given a set of uploadable_sources and optional data rows.
         See workspace.create_collection for details of these arguments.
@@ -694,12 +694,8 @@ class Collection():
             for s in uploadable_sources:
                 s._check_in_data(data)
 
-        import pdb; pdb.set_trace()
         # append rows to data
         new_rows = self.rows.append(data)
-
-        print(new_rows)
-
         self.replace_data(new_rows)
 
         # validate and register uploadable sources against existing sources
