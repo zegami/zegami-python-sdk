@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright 2021 Zegami Ltd
 
-"""Create collection example."""
+"""Example for adding images to an existing collection."""
 
 from zegami_sdk.client import ZegamiClient
 from zegami_sdk.source import UploadableSource
