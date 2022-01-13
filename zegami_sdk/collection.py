@@ -732,7 +732,7 @@ class Collection():
         else:
             # image only collection. Lookup should be n => n.
             # This is a bit of a hack, but works
-            return { k: k for k in range(100000)}
+            return {k: k for k in range(100000)}
 
         return dataset['imageset_indices']
 
