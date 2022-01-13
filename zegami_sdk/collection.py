@@ -296,8 +296,12 @@ class Collection():
             ) for i in imageset_indices]
             signed_route_urls = []
             for url in get_signed_urls:
-                response = c._auth_get(url)
-                signed_route_urls.append(response['url'])
+                # Unjoined rows will have None. Possibly better to filter these out earlier, but this works
+                if 'None' in url:
+                    signed_route_urls.append('')
+                else:
+                    response = c._auth_get(url)
+                    signed_route_urls.append(response['url'])
             return signed_route_urls
 
     def download_annotation(self, annotation_id):
@@ -722,8 +726,13 @@ class Collection():
         assert type(join_id) == str, 'Expected join_id to be string: {}'.format(join_id)
         url = '{}/{}/project/{}/datasets/{}'.format(c.HOME, c.API_0, self.workspace_id, join_id)
         dataset = c._auth_get(url)['dataset']
-        assert 'imageset_indices' in dataset.keys(), 'No \'imageset_indices\' '\
-            'in obtained dataset: {}'.format(dataset.keys())
+
+        if 'imageset_indices' in dataset.keys():
+            return dataset['imageset_indices']
+        else:
+            # image only collection. Lookup should be n => n.
+            # This is a bit of a hack, but works
+            return { k: k for k in range(100000)}
 
         return dataset['imageset_indices']
 
