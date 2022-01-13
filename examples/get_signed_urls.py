@@ -1,7 +1,5 @@
 from zegami_sdk.client import ZegamiClient
 
-import pandas as pd
-
 client = ZegamiClient()
 
 workspace = client.get_workspace_by_id('')
