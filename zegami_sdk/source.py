@@ -5,6 +5,7 @@
 
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from glob import glob
+import json
 import os
 
 from tqdm import tqdm
@@ -335,3 +336,50 @@ class UploadableSource():
         if ext in cls.IMAGE_MIMES.keys():
             return cls.IMAGE_MIMES[ext]
         raise TypeError('"{}" is not a supported image mime_type ({})'.format(path, cls.IMAGE_MIMES))
+
+
+class UrlSource(UploadableSource):
+
+    def __init__(self, name, url_template, image_fetch_headers, column_filename='Filename'):
+        """Used in conjunction with create_collection().
+
+        A UrlSource() fetches the images from the url template given, resulting in the
+        generation of a true Source() in the collection.
+        """
+        self.name = name
+        self.url_template = url_template
+        self.image_fetch_headers = image_fetch_headers
+        self.column_filename = column_filename
+
+        # Set externally once a blank collection has been made
+        self._source = None
+        self._index = None
+
+    def _upload(self):
+        """Update upload imageset to use the provided url template to get the images.
+
+        provided a Source() has been generated and designated to this instance.
+        """
+        collection = self.source.collection
+        c = collection.client
+
+        print('- Configuring source {} "{}" to fetch images from url'.format(self.index, self.name))
+
+        upload_ims_url = '{}/{}/project/{}/imagesets/{}'.format(c.HOME,
+                                                                c.API_0, collection.workspace_id, self.imageset_id)
+        upload_ims = c._auth_get(upload_ims_url)
+        new_source = {
+            "dataset_id": collection._dataset_id,
+            'transfer': {
+                'headers': self.image_fetch_headers,
+                'url': {
+                    'dataset_column': self.column_filename,
+                    'url_template': self.url_template,
+                }
+            }
+        }
+        upload_ims['imageset']['source'] = new_source
+        # TODO: remove this when backend fixed transfer imageset to use sql storage
+        upload_ims['imageset']['imageinfo_storage'] = 'mongodb'
+        payload = json.dumps(upload_ims['imageset'])
+        c._auth_put(upload_ims_url, payload)
