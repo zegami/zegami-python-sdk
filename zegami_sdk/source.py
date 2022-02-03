@@ -363,14 +363,14 @@ class UrlSource(UploadableSource):
         collection = self.source.collection
         c = collection.client
 
+        print('- Configuring source {} "{}" to fetch images from url'.format(self.index, self.name))
+
         upload_ims_url = '{}/{}/project/{}/imagesets/{}'.format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         upload_ims = c._auth_get(upload_ims_url)
         new_source = {
             "dataset_id": collection._dataset_id,
             'transfer': {
-                'headers': {
-                    'Accept': self.image_fetch_headers,
-                },
+                'headers': self.image_fetch_headers,
                 'url': {
                     'dataset_column': self.column_filename,
                     'url_template': self.url_template,

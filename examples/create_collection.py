@@ -17,7 +17,7 @@ workspace = zc.get_workspace_by_id(WORKSPACE_ID)
 data_file = r"path/to/data"
 images = r"path/to/images"
 url_template = 'https://example.com/images/{}?accesscode=abc3e20423423497'
-image_fetch_headers = 'image/jpg'
+image_fetch_headers = {'Accept': 'image/jpg'}
 column_name = 'id'
 
 upload1 = UploadableSource('source_name', images, 'name')
