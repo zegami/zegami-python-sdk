@@ -10,7 +10,7 @@ import os
 from time import time
 
 import pandas as pd
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from .source import Source, UploadableSource
 
@@ -409,7 +409,11 @@ class Collection():
         """
         r = self.client._auth_get(url, return_response=True, stream=True)
         r.raw.decode = True
-        return Image.open(r.raw)
+
+        try:
+            return Image.open(r.raw)
+        except UnidentifiedImageError:
+            return Image.open(BytesIO(r.content))
 
     def download_image_batch(self, urls, max_workers=50, show_time_taken=True):
         """
