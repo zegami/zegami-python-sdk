@@ -6,8 +6,8 @@
 from zegami_sdk import nodes
 from zegami_sdk.client import ZegamiClient
 
-WORKSPACE_ID = 'RpRqxGNk'
-COLLECTION_ID = '61e195ae1f05d79364ff62bb'
+WORKSPACE_ID = ''
+COLLECTION_ID = ''
 NAME = 'Image Similarity 2'
 col_name = NAME.replace(' ', '_').lower()
 
@@ -26,9 +26,9 @@ if collection.version == 1:
 else:
     # v2
     source = collection.sources[0]
-    dataset_id = source._data.get('dataset_id')
-    scaled_imageset_id = collection._data.get('scaled_imageset_id')
-    join_dataset_id = collection._data.get('join_dataset_id')
+    dataset_id = collection._data.get('dataset_id')
+    scaled_imageset_id = source._data.get('scaled_imageset_id')
+    join_dataset_id = source._data.get('imageset_dataset_join_id')
 
 print('adding feature extraction node')
 # create feature extraction node
