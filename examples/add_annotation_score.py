@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# Copyright 2021 Zegami Ltd
+
+"""Add annotation score example."""
+
 from zegami_sdk import nodes
 from zegami_sdk.client import ZegamiClient
 

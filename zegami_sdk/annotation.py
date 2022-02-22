@@ -1,32 +1,32 @@
 # -*- coding: utf-8 -*-
-"""
-Zegami Ltd.
-Apache 2.0
-"""
+# Copyright 2021 Zegami Ltd
+
+"""Annotation functionality."""
 
 import base64
 import io
 import os
+
 import numpy as np
 from PIL import Image
 
 
 class _Annotation():
-    ''' Base (abstract) class for annotations. '''
+    """Base (abstract) class for annotations."""
 
-    # Define the string annotation TYPE in child classes
+    # Define the string annotation TYPE and UPLOADABLE_DESCRIPTION in child classes
     TYPE = None
     UPLOADABLE_DESCRIPTION = None
 
     def __init__(self, collection, annotation_data, source=None):
-        ''' !! STOP !! Instantiate a non-hidden subclass instead.
+        """!! STOP !! Instantiate a non-hidden subclass instead.
 
         Each subclass should call this __init__ AFTER assignment of members
         so that checks can be performed.
 
         If making a new annotation to upload, use collection.upload_annotation
         instead.
-        '''
+        """
 
         self._collection = collection  # Collection instance
         self._source = source  # Source instance
@@ -42,25 +42,28 @@ class _Annotation():
     @property
     def collection():
         pass
+
     @collection.getter
-    def collection(self):
-        ''' The collection this annotation belongs to. '''
+    def collection(self) -> object:
+        """The collection this annotation belongs to."""
         return self._collection
 
     @property
     def source():
         pass
+
     @source.getter
-    def source(self):
-        ''' The source this annotation belongs to in its collection. '''
+    def source(self) -> object:
+        """The source this annotation belongs to in its collection."""
         return self._source
 
     @property
     def _image_index():
         pass
+
     @_image_index.getter
-    def _image_index(self):
-        ''' The image-space index of this annotation's owner's image. '''
+    def _image_index(self) -> int:
+        """The image-space index of this annotation's owner's image."""
 
         if 'image_index' not in self._data.keys():
             raise ValueError('Annotation\'s _data did not contain '
@@ -70,9 +73,10 @@ class _Annotation():
     @property
     def row_index():
         pass
+
     @row_index.getter
-    def row_index(self):
-        ''' The data-row-space index of this annotation's owner. '''
+    def row_index(self) -> int:
+        """The data-row-space index of this annotation's owner."""
 
         lookup = self.collection._get_image_meta_lookup(self.source)
         return lookup.index(self._image_index)
@@ -80,16 +84,17 @@ class _Annotation():
     @property
     def _imageset_id():
         pass
+
     @_imageset_id.getter
-    def _imageset_id(self):
-        ''' Shortcut for the owning collection's (source's) imageset ID. '''
+    def _imageset_id(self) -> str:
+        """Shortcut for the owning collection's (source's) imageset ID."""
         return self.collection._get_imageset_id(self.source)
 
     # -- Abstract/virtual, must be implemented in children --
 
     @classmethod
-    def create_uploadable(cls) -> None:
-        ''' Extend in children to include actual annotation data. '''
+    def create_uploadable(cls) -> dict:
+        """Extend in children to include actual annotation data."""
 
         return {
             'type': cls.TYPE,
@@ -97,27 +102,28 @@ class _Annotation():
             'annotation': None
         }
 
-    def view(self):
-        ''' Abstract method to view a representation of the annotation. '''
+    def view(self) -> None:
+        """Abstract method to view a representation of the annotation."""
         return NotImplementedError(
             '\'view\' method not implemented for annotation type: {}'
             .format(self.TYPE))
 
 
 class AnnotationMask(_Annotation):
-    ''' An annotation comprising a bitmask and some metadata.
+    """An annotation comprising a bitmask and some metadata.
 
-    To view the maskas an image, use mask.view().
+    To view the masks an image, use mask.view().
 
     Note: Providing imageset_id and image_index is not mandatory and can be
     obtained automatically, but this is slow and can cause unnecessary
-    re-downloading of data. '''
+    re-downloading of data.
+    """
 
     TYPE = 'mask'
-    UPLOADABLE_DESCRIPTION = '''
+    UPLOADABLE_DESCRIPTION = """
         'Mask annotation data includes the actual mask (as a base64 encoded
         'png string), a width and height, bounding box, and score if generated
-        by a model (else None). '''
+        by a model (else None). """
 
     def __init__(self, collection, row_index, source=None, from_filepath=None,
                  from_url=None, imageset_id=None, image_index=None):
@@ -125,12 +131,13 @@ class AnnotationMask(_Annotation):
 
     @classmethod
     def create_uploadable(cls, bool_mask, class_id):
-        ''' Creates a data package ready to be uploaded with a collection's
+        """Creates a data package ready to be uploaded with a collection's
         .upload_annotation().
 
         Note: The output of this is NOT an annotation, it is used to upload
         annotation data to Zegami, which when retrieved will form an
-        annotation. '''
+        annotation.
+        """
 
         if type(bool_mask) != np.ndarray:
             raise TypeError('Expected bool_mask to be a numpy array, not a {}'
@@ -177,7 +184,7 @@ class AnnotationMask(_Annotation):
         return uploadable
 
     def view(self):
-        ''' View the mask as an image. '''
+        """View the mask as an image."""
 
         # NOT TESTED
         im = Image.fromarray(self.mask_uint8)
@@ -186,18 +193,20 @@ class AnnotationMask(_Annotation):
     @property
     def mask_uint8():
         pass
+
     @mask_uint8.getter
-    def mask_uint8(self):
-        ''' Mask data as a uint8 numpy array (0 -> 255). '''
+    def mask_uint8(self) -> np.ndarray:
+        """Mask data as a uint8 numpy array (0 -> 255)."""
 
         return self.mask_bool.astype(np.uint8) * 255
 
     @property
     def mask_bool():
         pass
+
     @mask_bool.getter
-    def mask_bool(self):
-        ''' Mask data as a bool numpy array. '''
+    def mask_bool(self) -> np.ndarray:
+        """Mask data as a bool numpy array."""
 
         a = self._get_bool_arr()
         if len(a.shape) != 2:
@@ -207,20 +216,22 @@ class AnnotationMask(_Annotation):
         return a
 
     @staticmethod
-    def _read_bool_arr(local_fp):
-        ''' Reads the boolean array from a locally stored file. Useful for
-        creation of an upload package. '''
+    def _read_bool_arr(local_fp) -> np.ndarray:
+        """Reads the boolean array from a locally stored file. Useful for
+        creation of an upload package.
+        """
 
-        #TODO - Not finished/tested
+        # TODO - Not finished/tested
         assert os.path.exists(local_fp), 'File not found: {}'.format(local_fp)
         assert os.path.isfile(local_fp), 'Path is not a file: {}'.format(local_fp)
         arr = np.array(Image.open(local_fp), dtype='uint8')
         return arr
 
     @staticmethod
-    def parse_bool_masks(bool_masks):
-        ''' Checks the masks for correct data types, and ensures a shape of
-        [h, w, N]. '''
+    def parse_bool_masks(bool_masks) -> np.ndarray:
+        """Checks the masks for correct data types, and ensures a shape of
+        [h, w, N].
+        """
 
         if type(bool_masks) != np.ndarray:
             raise TypeError('Expected bool_masks to be a numpy array, not {}'
@@ -236,9 +247,10 @@ class AnnotationMask(_Annotation):
         return bool_masks
 
     @classmethod
-    def get_bool_mask_bounds(cls, bool_mask):
-        ''' Returns the { top, bottom, left, right } of the boolean array
-        associated with this annotation, calculated from its array data. '''
+    def get_bool_mask_bounds(cls, bool_mask) -> dict:
+        """Returns the { top, bottom, left, right } of the boolean array
+        associated with this annotation, calculated from its array data.
+        """
 
         bool_mask = cls.parse_bool_masks(bool_mask)[:, :, 0]
 
@@ -254,14 +266,19 @@ class AnnotationMask(_Annotation):
         return {'top': top, 'bottom': bottom, 'left': left, 'right': right}
 
     @staticmethod
-    def base64_to_boolmask(b64_data):
-        ''' Converts str base64 annotation data from Zegami into a boolean
-        mask. '''
+    def base64_to_boolmask(b64_data) -> np.ndarray:
+        """Converts str base64 annotation data from Zegami into a boolean
+        mask.
+        """
 
         if type(b64_data) is not str:
             raise TypeError('b64_data should be a str, not {}'.format(type(b64_data)))
         if b64_data.startswith('data:'):
             b64_data = b64_data.split(',', 1)[-1]
+
         img = Image.open(io.BytesIO(base64.b64decode(b64_data)))
-        arr_int = np.array(np.array(img) * 255, dtype='uint8')
+        img_arr = np.array(img)
+        premax = img_arr.max()
+        arr_int = np.array(np.array(img) * 255 if premax < 2 else np.array(img), dtype='uint8')
+
         return arr_int > 125

@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 23 16:37:17 2021.
+# Copyright 2021 Zegami Ltd
 
-@author: dougl
-"""
+"""util methods."""
+
 
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 import uuid
 
 import requests
-from urllib.parse import urlparse
 import urllib3
+
+ALLOW_INSECURE_SSL = os.environ.get('ALLOW_INSECURE_SSL', False)
 
 
 def __get_retry_adapter():
@@ -30,6 +31,8 @@ def __get_retry_adapter():
 def _create_zegami_session(self):
     """Create a session object to centrally handle auth and retry policy."""
     s = requests.Session()
+    if ALLOW_INSECURE_SSL:
+        s.verify = False
     s.headers.update({
         'Authorization': 'Bearer {}'.format(self.token),
         'Content-Type': 'application/json',
@@ -46,7 +49,10 @@ def _create_zegami_session(self):
 def _create_blobstore_session(self):
     """Session object to centrally handle retry policy."""
     s = requests.Session()
+    if ALLOW_INSECURE_SSL:
+        s.verify = False
     adapter = __get_retry_adapter()
+    s.mount('http://', adapter)
     s.mount('https://', adapter)
 
     self._blobstore_session = s
@@ -93,16 +99,13 @@ def _ensure_token(self, username, password, token, allow_save_token):
 
 def _get_token(self, username, password):
     """Gets the client's token using a username and password."""
-
     url = '{}/oauth/token/'.format(self.HOME)
-
     data = {'username': username, 'password': password, 'noexpire': True}
 
-    r = requests.post(url, json=data)
+    r = requests.post(url, json=data, verify=not ALLOW_INSECURE_SSL)
 
     if r.status_code != 200:
-        raise Exception(f'Couldn\'t set token, bad response ({r.status_code})'
-                        '\nWas your username/password correct?')
+        raise Exception(f'Couldn\'t set token, bad response ({r.status_code}) Was your username/password correct?')
 
     j = r.json()
 
@@ -114,64 +117,80 @@ def _check_status(response, is_async_request=False):
 
     If allow is set to True, doesn't throw an exception.
     """
-    code = response.status if is_async_request else response.status_code
-
-    assert response.ok, 'Bad request response ({}): {}\n\nbody:\n{}'.format(code, response.reason, response.text)
+    if not response.ok:
+        code = response.status if is_async_request else response.status_code
+        response_message = 'Bad request response ({}): {}\n\nbody:\n{}'.format(
+            code, response.reason, response.text
+        )
+        raise AssertionError(response_message)
 
 
 def _auth_get(self, url, return_response=False, **kwargs):
-    """Syncronous GET request. Used as standard over async currently.
+    """Synchronous GET request. Used as standard over async currently.
 
     If return_response == True, the response object is returned rather than
     its .json() output.
 
     Any additional kwargs are forwarded onto the requests.get().
     """
-    r = self._zegami_session.get(url, **kwargs)
+    r = self._zegami_session.get(url, verify=not ALLOW_INSECURE_SSL, **kwargs)
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
 
 def _auth_delete(self, url, **kwargs):
-    """Syncronous DELETE request. Used as standard over async currently.
+    """Synchronous DELETE request. Used as standard over async currently.
 
     Any additional kwargs are forwarded onto the requests.delete().
     """
-    resp = self._zegami_session.delete(url, **kwargs)
+    resp = self._zegami_session.delete(
+        url, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     self._check_status(resp, is_async_request=False)
     return resp
 
 
 def _auth_post(self, url, body, return_response=False, **kwargs):
-    """Syncronous POST request. Used as standard over async currently.
+    """Synchronous POST request. Used as standard over async currently.
+
     If return_response == True, the response object is returned rather than
     its .json() output.
     Any additional kwargs are forwarded onto the requests.post().
     """
-    r = self._zegami_session.post(url, body, **kwargs)
+    r = self._zegami_session.post(
+        url, body, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     self._check_status(r, is_async_request=False)
     return r if return_response else r.json()
 
 
 def _auth_put(self, url, body, return_response=False, **kwargs):
-    """Syncronous PUT request. Used as standard over async currently.
+    """Synchronous PUT request. Used as standard over async currently.
+
     If return_response == True, the response object is returned rather than
     its .json() output.
     Any additional kwargs are forwarded onto the requests.put().
     """
-    r = self._zegami_session.put(url, body, **kwargs)
+    r = self._zegami_session.put(
+        url, body, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     self._check_status(r, is_async_request=False)
-    return r if return_response else r.json()
+    return r if return_response and r.ok else r.json()
 
 
-def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1):
+def _obtain_signed_blob_storage_urls(self, workspace_id, id_count=1, blob_path=None):
     """Obtain a signed blob storage url.
+
     Returns:
         [dict]: blob storage urls
         [dict]: blob storage ids
     """
     blob_url = f'{self.HOME}/{self.API_1}/project/{workspace_id}/signed_blob_url'
-    id_set = {"ids": [str(uuid.uuid4()) for i in range(id_count)]}
+
+    if blob_path:
+        id_set = {"ids": [f'{blob_path}/{str(uuid.uuid4())}' for i in range(id_count)]}
+    else:
+        id_set = {"ids": [str(uuid.uuid4()) for i in range(id_count)]}
 
     response = self._auth_post(blob_url, body=None, json=id_set, return_response=True)
     data = response.json()
@@ -188,5 +207,7 @@ def _upload_to_signed_blob_storage_url(self, data, url, mime_type, **kwargs):
     # https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob
     if 'windows.net' in url:
         headers['x-ms-blob-type'] = 'BlockBlob'
-    response = self._blobstore_session.put(url, data=data, headers=headers, **kwargs)
+    response = self._blobstore_session.put(
+        url, data=data, headers=headers, verify=not ALLOW_INSECURE_SSL, **kwargs
+    )
     assert response.ok

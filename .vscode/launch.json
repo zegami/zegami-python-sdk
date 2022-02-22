@@ -5,7 +5,7 @@
         "name": "Run Example",
         "type": "python",
         "request": "launch",
-        "module": "examples.<example-name>",
+        "module": "examples.create_collection",
         "args": [],
         "env": {}
     },

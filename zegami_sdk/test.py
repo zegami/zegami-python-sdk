@@ -4,23 +4,22 @@
 
 """SDK Integration Authentication tests."""
 
-import sys
-import os
-from unittest.mock import patch
-import unittest
-
-from zegami_sdk import util
-import requests_mock
-
-from zegami_sdk.client import ZegamiClient
-from pathlib import Path
 import io
+import importlib
+import os
+from pathlib import Path
+import sys
+import unittest
+from unittest.mock import patch
+
+import requests_mock
+from zegami_sdk import util
+from zegami_sdk.client import ZegamiClient
 
 from .helper import guess_data_mimetype
 
 
 class TestHelper(unittest.TestCase):
-
     def test_no_libmagic_guess_data_mimetype(self):
         """Force import error and check fallback mimetype set."""
         test_output = io.StringIO()
@@ -37,7 +36,7 @@ class TestHelper(unittest.TestCase):
         assert 'libmagic' in test_output_stdout
 
     def test_libmagic_guess_data_mimetype(self):
-        """Force import error and check fallback mimetype set"""
+        """Force import error and check fallback mimetype set."""
         self.assertEqual(
             guess_data_mimetype('mock_data'),
             'text/plain'
@@ -74,3 +73,13 @@ class TestSdkUtil(unittest.TestCase):
                 token=None, allow_save_token=True
             )
             self.assertNotEqual(os.path.getsize(self.local_token_path), 0)
+
+
+@unittest.mock.patch.dict(os.environ, {'ALLOW_INSECURE_SSL': 'yes'})
+class TestSdkUtilVerifySSLFalse(TestSdkUtil):
+
+    @classmethod
+    @unittest.mock.patch.dict(os.environ, {'ALLOW_INSECURE_SSL': 'yes'})
+    def setUpClass(self):
+        importlib.reload(util)
+        return super().setUpClass()
