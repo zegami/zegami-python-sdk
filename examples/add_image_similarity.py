@@ -43,7 +43,8 @@ resp = nodes.add_node(
     imageset_parents=[scaled_imageset_id],
     type='imageset',
     name="Feature extraction " + NAME,
-    node_group=collection_group
+    node_group=collection_group,
+    processing_category='image_clustering'
 )
 features_node = resp.get('imageset')
 print('\nadded feature extraction node', features_node)
@@ -69,7 +70,8 @@ resp = nodes.add_node(
     },
     dataset_parents=features_node.get('id'),
     name="clustering" + NAME,
-    node_group=collection_group
+    node_group=collection_group,
+    processing_category='image_clustering'
 )
 cluster_node = resp.get('dataset')
 print('\nadded cluster node', cluster_node)
@@ -82,7 +84,8 @@ resp = nodes.add_node(
     {},
     dataset_parents=[cluster_node.get('id'), join_dataset_id],
     name=NAME + " mapping",
-    node_group=collection_group
+    node_group=collection_group,
+    processing_category='image_clustering'
 )
 mapping_node = resp.get('dataset')
 print('\nadded mapping node', mapping_node)

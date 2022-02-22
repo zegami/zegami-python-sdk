@@ -3,8 +3,18 @@
 """Nodes functionality."""
 
 
-def add_node(client, workspace, action, params={}, type="dataset",
-             dataset_parents=None, imageset_parents=None, name="New node", node_group=None):
+def add_node(
+    client,
+    workspace,
+    action,
+    params={},
+    type="dataset",
+    dataset_parents=None,
+    imageset_parents=None,
+    name="New node",
+    node_group=None,
+    processing_category=None
+):
     """Create a new processing node."""
     assert type in ["dataset", "imageset"]
 
@@ -22,6 +32,8 @@ def add_node(client, workspace, action, params={}, type="dataset",
 
     if node_group:
         payload['node_groups'] = [node_group]
+    if processing_category:
+        payload['processing_category'] = processing_category
 
     url = '{}/{}/project/{}/{}'.format(
         client.HOME, client.API_0, workspace.id, type + 's'
