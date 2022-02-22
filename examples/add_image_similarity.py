@@ -6,12 +6,12 @@
 from zegami_sdk import nodes
 from zegami_sdk.client import ZegamiClient
 
-WORKSPACE_ID = 'idUpFsFf'
-COLLECTION_ID = '620f7059ae1e945ce8410ce8'
+WORKSPACE_ID = 'RpRqxGNk'
+COLLECTION_ID = '61e195ae1f05d79364ff62bb'
 NAME = 'Image Similarity 2'
 col_name = NAME.replace(' ', '_').lower()
 
-zc = ZegamiClient(home="https://staging.zegami.com")
+zc = ZegamiClient()
 
 
 workspace = zc.get_workspace_by_id(WORKSPACE_ID)
@@ -19,9 +19,16 @@ collection = workspace.get_collection_by_id(COLLECTION_ID)
 print(collection)
 
 # Add new clustering node
-dataset_id = collection._data.get('dataset_id')
-scaled_imageset_id = collection._data.get('scaled_imageset_id')
-join_dataset_id = collection._data.get('imageset_dataset_join_id')
+if collection.version == 1:
+    dataset_id = collection._data.get('dataset_id')
+    scaled_imageset_id = collection._data.get('scaled_imageset_id')
+    join_dataset_id = collection._data.get('imageset_dataset_join_id')
+else:
+    # v2
+    source = collection.sources[0]
+    dataset_id = source._data.get('dataset_id')
+    scaled_imageset_id = collection._data.get('scaled_imageset_id')
+    join_dataset_id = collection._data.get('join_dataset_id')
 
 print('adding feature extraction node')
 # create feature extraction node
