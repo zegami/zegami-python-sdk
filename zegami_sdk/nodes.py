@@ -4,7 +4,7 @@
 
 
 def add_node(client, workspace, action, params={}, type="dataset",
-             dataset_parents=None, imageset_parents=None, name="New node"):
+             dataset_parents=None, imageset_parents=None, name="New node", node_group=None):
     """Create a new processing node."""
     assert type in ["dataset", "imageset"]
 
@@ -19,6 +19,9 @@ def add_node(client, workspace, action, params={}, type="dataset",
         'name': name,
         'source': source,
     }
+
+    if node_group:
+        payload['node_groups'] = [node_group]
 
     url = '{}/{}/project/{}/{}'.format(
         client.HOME, client.API_0, workspace.id, type + 's'
@@ -57,7 +60,7 @@ def add_parent(client, workspace, node_id, parent_node_id, type="dataset"):
     parent_ids.append(parent_node_id)
 
     # update node over API
-    client._auth_put(url, None, json=node)
+    client._auth_put(url, None, json=node, return_response=True)
 
 
 def _get_imageset_images(client, workspace, node_id):

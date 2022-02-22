@@ -16,6 +16,7 @@ zc = ZegamiClient()
 
 workspace = zc.get_workspace_by_id(WORKSPACE_ID)
 collection = workspace.get_collection_by_id(COLLECTION_ID)
+collection_group = 'collection_' + COLLECTION_ID
 print(collection)
 
 # Add new clustering node
@@ -41,7 +42,8 @@ resp = nodes.add_node(
     },
     imageset_parents=[scaled_imageset_id],
     type='imageset',
-    name="Feature extraction " + NAME
+    name="Feature extraction " + NAME,
+    node_group=collection_group
 )
 features_node = resp.get('imageset')
 print('\nadded feature extraction node', features_node)
@@ -66,7 +68,8 @@ resp = nodes.add_node(
         ]
     },
     dataset_parents=features_node.get('id'),
-    name="clustering" + NAME
+    name="clustering" + NAME,
+    node_group=collection_group
 )
 cluster_node = resp.get('dataset')
 print('\nadded cluster node', cluster_node)
@@ -78,7 +81,8 @@ resp = nodes.add_node(
     'mapping',
     {},
     dataset_parents=[cluster_node.get('id'), join_dataset_id],
-    name=NAME + " mapping"
+    name=NAME + " mapping",
+    node_group=collection_group
 )
 mapping_node = resp.get('dataset')
 print('\nadded mapping node', mapping_node)
