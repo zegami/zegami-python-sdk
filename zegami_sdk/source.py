@@ -7,7 +7,6 @@ from concurrent.futures import as_completed, ThreadPoolExecutor
 from glob import glob
 import json
 import os
-
 from tqdm import tqdm
 
 
