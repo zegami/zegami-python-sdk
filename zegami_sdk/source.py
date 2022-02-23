@@ -3,7 +3,7 @@
 
 """collection source functionality."""
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from glob import glob
 import json
 import os
