@@ -871,15 +871,15 @@ class Collection():
         """
 
         # Type-check provided join_id
-        if type(join_id != str):
+        if type(join_id) != str:
             raise TypeError(
-                'Expected join_id to be string, not: {} ({})'
+                'Expected join_id to be str, not: {} ({})'
                 .format(join_id, type(join_id)))
 
         # Obtain the dataset based on the join_id (dict)
         url = '{}/{}/project/{}/datasets/{}'.format(
             self.client.HOME, self.client.API_0, self.workspace_id, join_id)
-        dataset = self._auth_get(url)['dataset']
+        dataset = self.client._auth_get(url)['dataset']
 
         if 'imageset_indices' in dataset.keys():
             return dataset['imageset_indices']
@@ -1007,7 +1007,7 @@ class CollectionV2(Collection):
         self._check_data()
         self._check_version()
 
-        source = self.parse_source(source)
+        source = self._parse_source(source)
         join_id = source._imageset_dataset_join_id
 
         # If already obtained and cached, return that
