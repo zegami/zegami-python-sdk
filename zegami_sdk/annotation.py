@@ -162,7 +162,7 @@ class AnnotationMask(_Annotation):
         byte_data = mask_buffer.getvalue()
         mask_b64 = base64.b64encode(byte_data)
         mask_string = "data:image/png;base64,{}".format(mask_b64.decode("utf-8"))
-        bounds = cls.get_bool_mask_bounds(bool_mask)
+        bounds = cls.find_bool_mask_bounds(bool_mask)
         roi = {
             'xmin': int(bounds['left']),
             'xmax': int(bounds['right']),
@@ -210,7 +210,9 @@ class AnnotationMask(_Annotation):
     @mask_bool.getter
     def mask_bool(self):
         """Returns mask data as a False | True bool numpy array, [h, w]."""
-        return self.parse_bool_masks(self._get_bool_arr(), shape=2)
+
+        raise NotImplementedError('Not implemented, see annotation._data to obtain.')
+        # return self.parse_bool_masks(self._get_bool_arr(), shape=2)
 
     @staticmethod
     def _read_bool_arr(local_fp):
