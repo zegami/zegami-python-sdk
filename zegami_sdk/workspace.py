@@ -16,6 +16,7 @@ import pandas as pd
 from .collection import Collection
 from .helper import guess_data_mimetype
 from .source import UploadableSource
+from .nodes import NodeManager
 
 
 class Workspace():
@@ -23,6 +24,7 @@ class Workspace():
         self._client = client
         self._data = workspace_dict
         self._check_data()
+        self._node_manager = NodeManager(self)
 
     @property
     def id():
