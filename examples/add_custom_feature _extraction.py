@@ -57,4 +57,3 @@ resp = nodes.add_parent(
     output_dataset_id,
     cluster_node.get('id')
 )
-
