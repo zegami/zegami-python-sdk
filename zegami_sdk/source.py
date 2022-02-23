@@ -3,7 +3,7 @@
 
 """collection source functionality."""
 
-from concurrent.futures import as_completed, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from glob import glob
 import json
 import os
@@ -362,11 +362,13 @@ class UrlSource(UploadableSource):
         collection = self.source.collection
         c = collection.client
 
-        print('- Configuring source {} "{}" to fetch images from url'.format(self.index, self.name))
+        print('- Configuring source {} "{}" to fetch images from url'
+              .format(self.index, self.name))
 
-        upload_ims_url = '{}/{}/project/{}/imagesets/{}'.format(c.HOME,
-                                                                c.API_0, collection.workspace_id, self.imageset_id)
+        upload_ims_url = '{}/{}/project/{}/imagesets/{}'.format(
+            c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         upload_ims = c._auth_get(upload_ims_url)
+
         new_source = {
             "dataset_id": collection._dataset_id,
             'transfer': {
