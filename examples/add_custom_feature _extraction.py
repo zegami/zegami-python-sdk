@@ -13,9 +13,19 @@ zc = ZegamiClient("", "")
 
 workspace = zc.get_workspace_by_id(WORKSPACE_ID)
 collection = workspace.get_collection_by_id(COLLECTION_ID)
+collection_group = 'collection_' + COLLECTION_ID
 print(collection)
 
-imageset_id = collection._data.get('scaled_imageset_id')
+if collection.version == 1:
+    dataset_id = collection._data.get('dataset_id')
+    scaled_imageset_id = collection._data.get('scaled_imageset_id')
+    join_dataset_id = collection._data.get('imageset_dataset_join_id')
+else:
+    # v2
+    source = collection.sources[0]
+    dataset_id = collection._data.get('dataset_id')
+    scaled_imageset_id = source._data.get('scaled_imageset_id')
+    join_dataset_id = source._data.get('imageset_dataset_join_id')
 
 resp = nodes.add_node(
     zc,
@@ -28,8 +38,10 @@ resp = nodes.add_node(
         "height": 164,
     },
     'imageset',
-    imageset_parents=[imageset_id],
-    name="custom feature extraction node"
+    imageset_parents=[scaled_imageset_id],
+    name="custom feature extraction node",
+    node_group=collection_group,
+    processing_category='image_clustering'
 )
 custom_feature_extraction_node = resp.get('imageset')
 
@@ -45,9 +57,25 @@ resp = nodes.add_node(
         'columns_order': [1100, 1101]  # important to set this to a unique value
     },
     dataset_parents=custom_feature_extraction_node.get('id'),
-    name="custom feature extraction similarity"
+    name="custom feature extraction similarity",
+    node_group=collection_group,
+    processing_category='image_clustering'
 )
 cluster_node = resp.get('dataset')
+
+# create mapping node
+resp = nodes.add_node(
+    zc,
+    workspace,
+    'mapping',
+    {},
+    dataset_parents=[cluster_node.get('id'), join_dataset_id],
+    name="custom feature extraction mapping",
+    node_group=collection_group,
+    processing_category='image_clustering'
+)
+mapping_node = resp.get('dataset')
+print('\nadded mapping node', mapping_node)
 
 # Include output in collection output
 output_dataset_id = collection._data.get('output_dataset_id')
@@ -55,5 +83,5 @@ resp = nodes.add_parent(
     zc,
     workspace,
     output_dataset_id,
-    cluster_node.get('id')
+    mapping_node.get('id')
 )
