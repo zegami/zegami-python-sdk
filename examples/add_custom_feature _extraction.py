@@ -38,7 +38,7 @@ resp = nodes.add_node(
         "height": 164,
     },
     'imageset',
-    imageset_parents=[scaled_imageset_id],
+    imageset_parents=scaled_imageset_id,
     name="custom feature extraction node",
     node_group=collection_group,
     processing_category='image_clustering'
