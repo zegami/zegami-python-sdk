@@ -227,7 +227,9 @@ class Workspace():
         # Parse data
         if type(data) is str:
             if not os.path.exists(data):
-                raise FileNotFoundError('Data file "{}" doesn\'t exist'.format(data))
+                raise FileNotFoundError(
+                    'Data file "{}" doesn\'t exist'.format(data))
+
             # Check the file extension
             if data.split('.')[-1] == 'tsv':
                 data = pd.read_csv(data, delimiter='\t')
@@ -249,10 +251,10 @@ class Workspace():
         blank_id = blank_resp['id']
         blank = self.get_collection_by_id(blank_id)
 
-        # If uploading data, do it now from the DataFrame
+        # If uploading data, do it now from the DataFrame, ignoring fail block
         if data is not None:
             print('- Uploading data')
-            blank.replace_data(data)
+            blank.replace_data(data, fail_if_not_ready=False)
 
         # Fill in UploadableSource information with empty generated sources
         print('- Registering collection sources to uploadable sources')
@@ -270,7 +272,7 @@ class Workspace():
             .format(len(data), len(data.columns))
 
         print(
-            '- Finished collection "{}" upload using {} image source{} with {}'
+            '\n- Finished collection "{}" upload using {} image source{} with {}'
             .format(name, len(uploadable_sources), plural_str, data_str)
         )
 

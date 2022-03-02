@@ -9,10 +9,11 @@ import os
 
 import numpy as np
 from PIL import Image
+import cv2
 
 
 class _Annotation():
-    """Base (abstract) class for annotations."""
+    """Base class for annotations."""
 
     # Define the string annotation TYPE in child classes
     TYPE = None
@@ -20,9 +21,9 @@ class _Annotation():
 
     def __init__(self, collection, annotation_data, source=None):
         """
-        !! STOP !! Instantiate a non-hidden subclass instead.
+        Base class for annotations.
 
-        Each subclass should call this __init__ AFTER assignment of members
+        Subclasses should call super().__init__ AFTER assignment of members
         so that checks can be performed.
 
         If making a new annotation to upload, use collection.upload_annotation
@@ -31,14 +32,16 @@ class _Annotation():
 
         self._collection = collection  # Collection instance
         self._source = source  # Source instance
-        self._data = annotation_data  # { imageset_id, image_index, type, annotation }
+
+        # { imageset_id, image_index, type, annotation }
+        self._data = annotation_data
 
         # Enforce abstract requirement
         if self.TYPE is None:
             raise TypeError(
-                'Do not instantiate the base _Annotation class. It is '
-                'intended to be an abstract class, try one of the non-hidden '
-                'Annotation classes instead.')
+                'Do not instantiate the base _Annotation class. It is an '
+                'abstract class, try one of the non-hidden Annotation classes '
+                'instead.')
 
     @property
     def collection():
@@ -46,7 +49,7 @@ class _Annotation():
 
     @collection.getter
     def collection(self):
-        """The collection this annotation belongs to. """
+        """The collection this annotation belongs to."""
         return self._collection
 
     @property
@@ -55,7 +58,7 @@ class _Annotation():
 
     @source.getter
     def source(self):
-        """The source this annotation belongs to in its collection. """
+        """The source this annotation belongs to in its collection."""
         return self._source
 
     @property
@@ -64,7 +67,7 @@ class _Annotation():
 
     @_image_index.getter
     def _image_index(self):
-        """The image-space index of this annotation's owner's image. """
+        """The image-space index of this annotation's owner's image."""
 
         if 'image_index' not in self._data.keys():
             raise ValueError('Annotation\'s _data did not contain '
@@ -77,10 +80,15 @@ class _Annotation():
 
     @row_index.getter
     def row_index(self):
-        """The data-row-space index of this annotation's owner. """
+        return self._row_index
 
-        lookup = self.collection._get_image_meta_lookup(self.source)
-        return lookup.index(self._image_index)
+    @property
+    def imageset_index():
+        pass
+
+    @imageset_index.getter
+    def imageset_index(self):
+        return self.collection.row_index_to_imageset_index(self.row_index)
 
     @property
     def _imageset_id():
@@ -88,14 +96,14 @@ class _Annotation():
 
     @_imageset_id.getter
     def _imageset_id(self):
-        """Shortcut for the owning collection's (source's) imageset ID. """
+        """Shortcut for the owning collection's (source's) imageset ID."""
         return self.collection._get_imageset_id(self.source)
 
     # -- Abstract/virtual, must be implemented in children --
 
     @classmethod
     def create_uploadable(cls) -> None:
-        """Extend in children to include actual annotation data. """
+        """Extend in children to include actual annotation data."""
 
         return {
             'type': cls.TYPE,
@@ -104,39 +112,40 @@ class _Annotation():
         }
 
     def view(self):
-        """Abstract method to view a representation of the annotation. """
-        return NotImplementedError(
+        """Abstract method to view a representation of the annotation."""
+        raise NotImplementedError(
             '\'view\' method not implemented for annotation type: {}'
             .format(self.TYPE))
 
 
 class AnnotationMask(_Annotation):
-    """An annotation comprising a bitmask and some metadata.
+    """
+    An annotation comprising a bitmask and some metadata.
 
     To view the masks an image, use mask.view().
 
     Note: Providing imageset_id and image_index is not mandatory and can be
     obtained automatically, but this is slow and can cause unnecessary
-    re-downloading of data."""
+    re-downloading of data.
+    """
 
     TYPE = 'mask'
     UPLOADABLE_DESCRIPTION = """
-        'Mask annotation data includes the actual mask (as a base64 encoded
-        'png string), a width and height, bounding box, and score if generated
-        by a model (else None). """
-
-    def __init__(self, collection, row_index, source=None, from_filepath=None,
-                 from_url=None, imageset_id=None, image_index=None):
-        super().__init__(self, collection, row_index, source, from_filepath, from_url, imageset_id, image_index)
+        Mask annotation data includes the actual mask (as a base64 encoded
+        png string), a width and height, bounding box, and score if generated
+        by a model (else None).
+    """
 
     @classmethod
     def create_uploadable(cls, bool_mask, class_id):
-        """Creates a data package ready to be uploaded with a collection's
+        """
+        Creates a data package ready to be uploaded with a collection's
         .upload_annotation().
 
         Note: The output of this is NOT an annotation, it is used to upload
         annotation data to Zegami, which when retrieved will form an
-        annotation. """
+        annotation.
+        """
 
         if type(bool_mask) != np.ndarray:
             raise TypeError('Expected bool_mask to be a numpy array, not a {}'
@@ -148,6 +157,8 @@ class AnnotationMask(_Annotation):
             raise ValueError('Expected bool_mask to have a shape of 2 '
                              '(height, width), not {}'.format(bool_mask.shape))
 
+        # Ensure we are working with [h, w]
+        bool_mask = cls.parse_bool_masks(bool_mask, shape=2)
         h, w = bool_mask.shape
 
         # Encode the mask array as a 1 bit PNG encoded as base64
@@ -157,7 +168,7 @@ class AnnotationMask(_Annotation):
         byte_data = mask_buffer.getvalue()
         mask_b64 = base64.b64encode(byte_data)
         mask_string = "data:image/png;base64,{}".format(mask_b64.decode("utf-8"))
-        bounds = cls.get_bool_mask_bounds(bool_mask)
+        bounds = cls.find_bool_mask_bounds(bool_mask)
         roi = {
             'xmin': int(bounds['left']),
             'xmax': int(bounds['right']),
@@ -195,8 +206,7 @@ class AnnotationMask(_Annotation):
 
     @mask_uint8.getter
     def mask_uint8(self):
-        """Mask data as a uint8 numpy array (0 -> 255). """
-
+        """Returns mask data as a 0 -> 255 uint8 numpy array, [h, w]."""
         return self.mask_bool.astype(np.uint8) * 255
 
     @property
@@ -205,50 +215,91 @@ class AnnotationMask(_Annotation):
 
     @mask_bool.getter
     def mask_bool(self):
-        """Mask data as a bool numpy array. """
+        """Returns mask data as a False | True bool numpy array, [h, w]."""
 
-        a = self._get_bool_arr()
-        if len(a.shape) != 2:
-            raise ValueError('Unexpected mask_bool shape: {}'.format(a.shape))
-        if a.dtype != bool:
-            raise TypeError('Unexpected mask_bool dtype: {}'.format(a.dtype))
-        return a
+        raise NotImplementedError('Not implemented, see annotation._data to obtain.')
+        # return self.parse_bool_masks(self._get_bool_arr(), shape=2)
 
     @staticmethod
     def _read_bool_arr(local_fp):
-        """Reads the boolean array from a locally stored file. Useful for
-        creation of an upload package. """
+        """
+        Reads the boolean array from a locally stored file. Useful for
+        creation of upload package.
+        """
 
-        # TODO - Not finished/tested
-        assert os.path.exists(local_fp), 'File not found: {}'.format(local_fp)
-        assert os.path.isfile(local_fp), 'Path is not a file: {}'.format(local_fp)
+        # Check for a sensible local file
+        if not os.path.exists(local_fp):
+            raise FileNotFoundError('Mask not found: {}'.format(local_fp))
+        if not os.path.isfile(local_fp):
+            raise ValueError('Path is not a file: {}'.format(local_fp))
+
+        # Convert whatever is found into a [h, w] boolean mask
         arr = np.array(Image.open(local_fp), dtype='uint8')
-        return arr
+        if len(arr.shape) == 3:
+            N = arr.shape[2]
+            if N not in [1, 3, 4]:
+                raise ValueError('Unusable channel count: {}'.format(N))
+            if N == 1:
+                arr = arr[:, :, 0]
+            elif N == 3:
+                arr = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
+            elif N == 4:
+                arr = cv2.cvtColor(arr, cv2.COLOR_RGBA2GRAY)
+            if arr.any() and arr.max() == 1:
+                arr *= 255
+
+        return arr > 127
 
     @staticmethod
-    def parse_bool_masks(bool_masks):
-        """Checks the masks for correct data types, and ensures a shape of
-        [h, w, N]. """
+    def parse_bool_masks(bool_masks, shape=3):
+        """
+        Checks the masks for correct data types, and ensures a shape of
+        [h, w, N].
+        """
+
+        if shape not in [2, 3]:
+            raise ValueError("Invalid 'shape' - use shape = 2 or 3 for [h, w]"
+                             " or [h, w, N].")
 
         if type(bool_masks) != np.ndarray:
-            raise TypeError('Expected bool_masks to be a numpy array, not {}'
-                            .format(type(bool_masks)))
-        if bool_masks.dtype != bool:
-            raise TypeError('Expected bool_masks to have dtype == bool, not {}'
-                            .format(bool_masks.dtype))
+            raise TypeError(
+                'Expected bool_masks to be a numpy array, not {}'
+                .format(type(bool_masks)))
 
-        # If there is only one mask with no third shape value, insert one
-        if len(bool_masks.shape) == 2:
+        if bool_masks.dtype != bool:
+            raise TypeError(
+                'Expected bool_masks to have dtype == bool, not {}'
+                .format(bool_masks.dtype))
+
+        # If mismatching shape and mode, see if we can unambigously coerce
+        # into desired shape
+        if shape == 3 and len(bool_masks.shape) == 2:
             bool_masks = np.expand_dims(bool_masks, -1)
+        elif shape == 2 and len(bool_masks.shape) == 3:
+            if bool_masks.shape[2] > 1:
+                raise ValueError(
+                    'Got a multi-layer bool-mask with N > 1 while using shape'
+                    ' = 2. In this mode, only [h, w] or [h, w, 1] are '
+                    'permitted, not {}'.format(bool_masks.shape))
+            bool_masks = bool_masks[:, :, 0]
+
+        # Final check
+        if len(bool_masks.shape) != shape:
+            raise ValueError(
+                'Invalid final bool_masks shape. Should be {} but was {}'
+                .format(shape, bool_masks.shape))
 
         return bool_masks
 
     @classmethod
-    def get_bool_mask_bounds(cls, bool_mask):
-        """Returns the { top, bottom, left, right } of the boolean array
-        associated with this annotation, calculated from its array data. """
+    def find_bool_mask_bounds(cls, bool_mask, fail_on_error=False) -> dict:
+        """
+        Returns a dictionary of { top, bottom, left, right } for the edges
+        of the given boolmask. If fail_on_error is False, a failed result
+        returns { 0, 0, 0, 0 }. Set to True for a proper exception.
+        """
 
-        bool_mask = cls.parse_bool_masks(bool_mask)[:, :, 0]
+        bool_mask = cls.parse_bool_masks(bool_mask, shape=2)
 
         rows = np.any(bool_mask, axis=1)
         cols = np.any(bool_mask, axis=0)
@@ -258,20 +309,34 @@ class AnnotationMask(_Annotation):
             left, right = np.where(cols)[0][[0, -1]]
         except Exception:
             top, bottom, left, right = 0, 0, 0, 0
+            if fail_on_error:
+                raise ValueError(
+                    'Failed to find proper bounds for mask with shape {}'
+                    .format(bool_mask.shape))
 
         return {'top': top, 'bottom': bottom, 'left': left, 'right': right}
 
     @staticmethod
     def base64_to_boolmask(b64_data):
-        """Converts str base64 annotation data from Zegami into a boolean
-        mask. """
+        """
+        Converts str base64 annotation data from Zegami into a boolean
+        mask.
+        """
 
         if type(b64_data) is not str:
-            raise TypeError('b64_data should be a str, not {}'.format(type(b64_data)))
+            raise TypeError(
+                'b64_data should be a str, not {}'.format(type(b64_data)))
+
+        # Remove b64 typical prefix if necessary
         if b64_data.startswith('data:'):
             b64_data = b64_data.split(',', 1)[-1]
+
         img = Image.open(io.BytesIO(base64.b64decode(b64_data)))
         img_arr = np.array(img)
+
+        # Correct for potential float->int scale error
         premax = img_arr.max()
-        arr_int = np.array(np.array(img) * 255 if premax < 2 else np.array(img), dtype='uint8')
-        return arr_int > 125
+        arr_int = np.array(np.array(img) * 255 if premax < 2 else
+                           np.array(img), dtype='uint8')
+
+        return arr_int > 127
