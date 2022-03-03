@@ -1050,7 +1050,7 @@ class CollectionV2(Collection):
         for s in ss:
             print('{} : {}'.format(s.imageset_id, s.name))
 
-    def get_annotations(self, source=0, type='mask') -> list:
+    def get_annotations(self, source=0, anno_type='mask') -> list:
         """
         Gets one type of annotations for a particular source of a collection.
         Defaults to searching for mask-type annotations.
@@ -1065,7 +1065,7 @@ class CollectionV2(Collection):
         return self.client._auth_get(url)
 
     def get_annotations_for_image(
-            self, row_index, source=0, type='mask') -> list:
+            self, row_index, source=0, anno_type='mask') -> list:
         """
         Returns one type of annotations for a single item in the collection.
         Default to searching for mask-type annotations.
