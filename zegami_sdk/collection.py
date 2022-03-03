@@ -363,10 +363,10 @@ class Collection():
             elif type(rows) == list:
                 indices = [int(r) for r in rows]
             elif type(rows) == int:
-                indices = [rows]   
+                indices = [rows]
             else:
                 raise ValueError('Invalid rows argument, \'{}\' not supported'.format(type(rows)))
-        else: 
+        else:
             indices = [i for i in range(len(self))]
 
         # Convert the row-space indices into imageset-space indices
