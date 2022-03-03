@@ -364,7 +364,7 @@ class Collection():
             indices = [int(r) for r in rows]
         elif type(rows) == int:
             indices = [rows]
-        elif not rows: 
+        elif not rows:
             indices = [i for i in range(len(self))]
         else:
             raise ValueError(
