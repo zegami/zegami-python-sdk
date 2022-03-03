@@ -339,7 +339,7 @@ class Collection():
         rows = self.rows.iloc[list(row_indices)]
         return rows
 
-    def get_image_urls(self, rows, source=0, generate_signed_urls=False,
+    def get_image_urls(self, rows=None, source=0, generate_signed_urls=False,
                        signed_expiry_days=None, override_imageset_id=None):
         """
         Converts rows into their corresponding image URLs.
@@ -355,7 +355,8 @@ class Collection():
         e.g. the thumbnails only, by providing an alternative imageset id.
         """
 
-        # Turn the provided 'rows' into a list of ints
+        # Turn the provided 'rows' into a list of ints.
+        # If 'rows' are not defined, get all rows of collection.
         if type(rows) == pd.DataFrame:
             indices = list(rows.index)
 
@@ -363,6 +364,8 @@ class Collection():
             indices = [int(r) for r in rows]
         elif type(rows) == int:
             indices = [rows]
+        elif not rows: 
+            indices = [i for i in range(len(self))]
         else:
             raise ValueError(
                 'Invalid rows argument, \'{}\' not supported'
