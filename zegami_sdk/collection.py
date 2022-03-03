@@ -357,19 +357,17 @@ class Collection():
 
         # Turn the provided 'rows' into a list of ints.
         # If 'rows' are not defined, get all rows of collection.
-        if type(rows) == pd.DataFrame:
-            indices = list(rows.index)
-
-        elif type(rows) == list:
-            indices = [int(r) for r in rows]
-        elif type(rows) == int:
-            indices = [rows]
-        elif not rows:
+        if rows:
+            if type(rows) == pd.DataFrame:
+                indices = list(rows.index)
+            elif type(rows) == list:
+                indices = [int(r) for r in rows]
+            elif type(rows) == int:
+                indices = [rows]   
+            else:
+                raise ValueError('Invalid rows argument, \'{}\' not supported'.format(type(rows)))
+        else: 
             indices = [i for i in range(len(self))]
-        else:
-            raise ValueError(
-                'Invalid rows argument, \'{}\' not supported'
-                .format(type(rows)))
 
         # Convert the row-space indices into imageset-space indices
         lookup = self._get_image_meta_lookup(source)
