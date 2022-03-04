@@ -1021,7 +1021,7 @@ class Collection():
         return "<Collection id={} name={}>".format(self.id, self.name)
 
     def id_to_class(self, ID):
-        return self.classes[ID-1]['name']
+        return self.classes[ID - 1]['name']
 
     def get_annotations_metadata_to_csv(self, outpath=None,
                                         anno_types=['mask', 'zc-boundingbox', 'zc-polygon']) -> pd.DataFrame:
