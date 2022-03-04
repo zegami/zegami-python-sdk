@@ -1023,7 +1023,8 @@ class Collection():
     def id_to_class(self, ID):
         return self.classes[ID-1]['name']
 
-    def get_annotations_metadata_to_csv(self, outpath=None, anno_types=['mask', 'zc-boundingbox', 'zc-polygon']) -> pd.DataFrame:
+    def get_annotations_metadata_to_csv(self, outpath=None,
+                                        anno_types=['mask', 'zc-boundingbox', 'zc-polygon']) -> pd.DataFrame:
         """Creates a .csv file with annotations metadata from a collection."""
         annos = []
         for anno_type in anno_types:
