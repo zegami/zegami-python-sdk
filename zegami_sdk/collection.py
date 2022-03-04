@@ -1020,6 +1020,36 @@ class Collection():
     def __repr__(self) -> str:
         return "<Collection id={} name={}>".format(self.id, self.name)
 
+    def id_to_class(self, ID):
+        return self.classes[ID-1]['name']
+
+    def get_annotations_metadata_to_csv(self, outpath=None, anno_types=['mask', 'zc-boundingbox', 'zc-polygon']) -> pd.DataFrame:
+        """Creates a .csv file with annotations metadata from a collection."""
+        annos = []
+        for anno_type in anno_types:
+            annos += self.get_annotations(anno_type=anno_type)['annotations']
+        metadata = self.get_annotations_metadata(annos)
+
+        if outpath:
+            metadata.to_csv(outpath)
+            print('Saved annotations metadata at "{}".'.format(outpath))
+        return metadata
+
+    def get_annotations_metadata(self, annos) -> pd.DataFrame:
+        """Compute pandas.DataFrame of annotations metadata from a collection."""
+        if type(annos) == dict:
+            annos = annos['annotations']
+        metadata = pd.DataFrame()
+        for i, anno in enumerate(annos):
+            row = {**{'Image': anno['image_index'],
+                      'ID': anno['id'],
+                      'Class': self.id_to_class(int(anno['class_id']))},
+                   **anno['metadata']}
+            metadata = metadata.append(row, ignore_index=True)
+            # Change order of columns
+        metadata = metadata[[metadata.columns[i] for i in (3, 2, 1, 0, 4, 5, 6)]]
+        return metadata
+
 
 class CollectionV2(Collection):
 
