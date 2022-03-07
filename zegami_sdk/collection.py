@@ -614,24 +614,26 @@ class Collection():
             tags[record['tag']].append(record['key'])
         return tags
 
-    def get_annotations(self, anno_type='mask') -> dict:
+    def get_annotations(self, anno_type=None) -> dict:
         """
-        Returns one type of annotations attached to the collection.
-
-        Default as mask annotations.
+        Gets the annotations of a collection.
+        Defaults to searching for annotations of all types.
         """
 
         c = self.client
-        url = '{}/{}/project/{}/annotations/collection/{}?type={}'.format(
-            c.HOME, c.API_1, self.workspace_id, self.id, anno_type)
+        url = '{}/{}/project/{}/annotations/collection/{}'.format(
+            c.HOME, c.API_1, self.workspace_id, self.id)
+
+        if anno_type is not None:
+            url += '?type=' + anno_type
 
         return c._auth_get(url)
 
     def get_annotations_for_image(
-            self, row_index, source=None, anno_type='mask') -> list:
+            self, row_index, source=None, anno_type=None) -> list:
         """
-        Returns one type of annotations for a single item in the collection.
-        Default as mask annotations.
+        Returns annotations for a single item in the collection.
+        Defaults to searching for annotations of all types.
         """
 
         if source is not None:
@@ -644,9 +646,12 @@ class Collection():
         lookup = self._get_image_meta_lookup()
         imageset_index = lookup[row_index]
 
-        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'\
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'\
             .format(c.HOME, c.API_1, self.workspace_id,
-                    self._get_imageset_id(), imageset_index, anno_type)
+                    self._get_imageset_id(), imageset_index)
+
+        if anno_type is not None:
+            url += '?type=' + anno_type
 
         return c._auth_get(url)
 
@@ -1023,23 +1028,21 @@ class Collection():
     def id_to_class(self, ID):
         return self.classes[ID - 1]['name']
 
-    def get_annotations_metadata_to_csv(self, outpath=None,
-                                        anno_types=['mask', 'zc-boundingbox', 'zc-polygon']) -> pd.DataFrame:
-        """Creates a .csv file with annotations metadata from a collection."""
-        annos = []
-        for anno_type in anno_types:
-            annos += self.get_annotations(anno_type=anno_type)['annotations']
-        metadata = self.get_annotations_metadata(annos)
-
-        if outpath:
-            metadata.to_csv(outpath)
-            print('Saved annotations metadata at "{}".'.format(outpath))
+    def get_annotations_metadata_to_csv(self, outpath='output.csv',
+                                        anno_type=None) -> pd.DataFrame:
+        """Creates a .csv file with annotations metadata from a collection.
+        Defaults to searching for annotations of all types.
+        """
+        metadata = self.get_annotations_metadata(anno_type)
+        metadata.to_csv(outpath)
+        print('Saved annotations metadata at "{}".'.format(outpath))
         return metadata
 
-    def get_annotations_metadata(self, annos) -> pd.DataFrame:
-        """Compute pandas.DataFrame of annotations metadata from a collection."""
-        if type(annos) == dict:
-            annos = annos['annotations']
+    def get_annotations_metadata(self, anno_type=None) -> pd.DataFrame:
+        """Compute pandas.DataFrame of annotations metadata from a collection.
+        Defaults to searching for annotations of all types.
+        """
+        annos = self.get_annotations(anno_type=anno_type)['annotations']
         metadata = pd.DataFrame()
         for i, anno in enumerate(annos):
             row = {**{'Image': anno['image_index'],
@@ -1081,25 +1084,27 @@ class CollectionV2(Collection):
         for s in ss:
             print('{} : {}'.format(s.imageset_id, s.name))
 
-    def get_annotations(self, source=0, anno_type='mask') -> list:
+    def get_annotations(self, source=0, anno_type=None) -> dict:
         """
-        Gets one type of annotations for a particular source of a collection.
-        Defaults to searching for mask-type annotations.
+        Gets annotations for a particular source of a collection.
+        Defaults to searching for annotations of all types.
         """
 
         source = self._parse_source(source)
 
-        url = '{}/{}/project/{}/annotations/collection/{}/source/{}?type={}'\
+        url = '{}/{}/project/{}/annotations/collection/{}/source/{}'\
             .format(self.client.HOME, self.client.API_1, self.workspace_id,
-                    self.id, source.id, type)
+                    self.id, source.id)
+        if anno_type is not None:
+            url += '?type=' + anno_type
 
         return self.client._auth_get(url)
 
     def get_annotations_for_image(
-            self, row_index, source=0, anno_type='mask') -> list:
+            self, row_index, source=0, anno_type=None) -> list:
         """
-        Returns one type of annotations for a single item in the collection.
-        Default to searching for mask-type annotations.
+        Returns annotations for a single item in the collection.
+        Defaults to searching for annotations of all types.
         """
 
         # Parse the source for a valid Source() instance
@@ -1109,9 +1114,11 @@ class CollectionV2(Collection):
         imageset_index = self.imageset_index_to_row_index(row_index, source)
 
         # Download and return annotations of the requested type
-        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}?type={}'\
+        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'\
             .format(self.client.HOME, self.client.API_1, self.workspace_id,
-                    self._get_imageset_id(), imageset_index, type)
+                    self._get_imageset_id(), imageset_index)
+        if anno_type is not None:
+            url += '?type=' + anno_type
 
         return self.client._auth_get(url)
 
