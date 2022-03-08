@@ -357,7 +357,7 @@ class Collection():
 
         # Turn the provided 'rows' into a list of ints.
         # If 'rows' are not defined, get all rows of collection.
-        if rows:
+        if rows is not None:
             if type(rows) == pd.DataFrame:
                 indices = list(rows.index)
             elif type(rows) == list:
