@@ -16,34 +16,12 @@ from .source import Source, UploadableSource
 
 class Collection():
 
-    @staticmethod
-    def _construct_collection(
-            client, workspace, collection_dict, allow_caching=True):
-        """
-        Use this to instantiate Collection instances properly.
+    def __repr__(self) -> str:
+        return "<CollectionV{} id={} name={}>".format(
+            self.version, self.id, self.name)
 
-        Requires an instantiated ZegamiClient, a Workspace instance, and the
-        data describing the collection.
-        """
-
-        if type(collection_dict) != dict:
-            raise TypeError(
-                'Expected collection_dict to be a dict, not {}'
-                .format(collection_dict))
-
-        v = collection_dict['version'] if 'version' in collection_dict.keys()\
-            else 1
-
-        if v == 1:
-            return Collection(
-                client, workspace, collection_dict, allow_caching)
-
-        elif v == 2:
-            return CollectionV2(
-                client, workspace, collection_dict, allow_caching)
-
-        else:
-            raise ValueError('Unsupported collection version: {}'.format(v))
+    def __len__(self) -> int:
+        return int(self._retrieve('total_data_items'))
 
     def __init__(self, client, workspace, collection_dict, allow_caching=True):
         """
@@ -54,11 +32,11 @@ class Collection():
         can be found in Workspace() objects, and new collections can be created
         using workspaces.
         """
+
         self._client = client
         self._data = collection_dict
         self._workspace = workspace
-        self._check_data()
-        self._check_version()
+        self._generate_sources()
 
         # Caching
         self.allow_caching = allow_caching
@@ -66,8 +44,8 @@ class Collection():
 
     def clear_cache(self):
         self._cached_rows = None
-        self._cached_image_meta_lookup = None
         self._cached_annotations_data = None
+        self._cached_image_meta_source_lookups = {}
 
     @property
     def client():
@@ -75,7 +53,8 @@ class Collection():
 
     @client.getter
     def client(self):
-        assert self._client, 'Client is not valid'
+        if not self._client:
+            raise ValueError('Collection: Client is not valid')
         return self._client
 
     @property
@@ -84,10 +63,7 @@ class Collection():
 
     @name.getter
     def name(self) -> str:
-        self._check_data()
-        assert 'name' in self._data.keys(),\
-            'Collection\'s data didn\'t have a \'name\' key'
-        return self._data['name']
+        return self._retrieve('name')
 
     @property
     def id():
@@ -95,10 +71,7 @@ class Collection():
 
     @id.getter
     def id(self):
-        self._check_data()
-        assert 'id' in self._data.keys(),\
-            'Collection\'s data didn\'t have an \'id\' key'
-        return self._data['id']
+        return self._retrieve('id')
 
     @property
     def _dataset_id():
@@ -106,10 +79,7 @@ class Collection():
 
     @_dataset_id.getter
     def _dataset_id(self) -> str:
-        self._check_data()
-        assert 'dataset_id' in self._data.keys(),\
-            'Collection\'s data didn\'t have a \'dataset_id\' key'
-        return self._data['dataset_id']
+        return self._retrieve('dataset_id')
 
     @property
     def _upload_dataset_id():
@@ -117,10 +87,7 @@ class Collection():
 
     @_upload_dataset_id.getter
     def _upload_dataset_id(self) -> str:
-        self._check_data()
-        assert 'upload_dataset_id' in self._data.keys(),\
-            'Collection\'s data didn\'t have a \'upload_dataset_id\' key'
-        return self._data['upload_dataset_id']
+        return self._retrieve('upload_dataset_id')
 
     @property
     def version():
@@ -128,7 +95,6 @@ class Collection():
 
     @version.getter
     def version(self):
-        self._check_data()
         return self._data['version'] if 'version' in self._data.keys() else 1
 
     @property
@@ -145,8 +111,8 @@ class Collection():
 
     @workspace_id.getter
     def workspace_id(self):
-        assert self.workspace is not None,\
-            'Tried to get a workspace ID when no workspace was set'
+        if self.workspace is None:
+            raise ValueError('Collection has no assigned workspace')
         return self.workspace.id
 
     @property
@@ -158,52 +124,54 @@ class Collection():
         return '{}/collections/{}-{}'.format(
             self.client.HOME, self.workspace_id, self.id)
 
+    def _generate_sources(self):
+        """On-construction sets source instances using of collection data."""
+
+        if self.version < 2:
+            self._sources = [Source(self, self._data)]
+
+        else:
+            self._sources = [
+                Source(self, s) for s in self._data['image_sources']]
+
     @property
     def sources():
         pass
 
     @sources.getter
-    def sources(self):
+    def sources(self) -> list:
         """
-        Returns all Source() instances belonging to this collection. V1
-        collections do not use sources, however a single pseudo source with
-        the correct imageset information is returned.
+        All Source() instances belonging to this collection. V1 collections do
+        not use sources, however a single pseudo source with the correct
+        imageset information is returned.
         """
 
-        if self.version < 2:
-            return [Source(self, self._data)]
-
-        if 'image_sources' not in self._data.keys():
-            raise ValueError(
-                "Expected to find 'image_sources' in collection but didn't: {}"
-                .format(self._data))
-
-        return [Source(self, s) for s in self._data['image_sources']]
+        return self._sources
 
     def show_sources(self):
         """Lists the IDs and names of all sources in the collection."""
 
-        ss = self.sources
-        print('\nImage sources ({}):'.format(len(ss)))
-        for s in ss:
-            print('{} : {}'.format(s.imageset_id, s.name))
+        print('\nImage sources ({}):'.format(len(self.sources)))
+        for s in self.sources:
+            print(s)
 
     @property
     def rows():
         pass
 
     @rows.getter
-    def rows(self):
-        """Returns all data rows of the collection as a Pandas DataFrame."""
+    def rows(self) -> pd.DataFrame:
+        """All data rows of the collection as a dataframe."""
+
         if self.allow_caching and self._cached_rows is not None:
             return self._cached_rows
 
-        c = self.client
-
         # Obtain the metadata bytes from Zegami
         url = '{}/{}/project/{}/datasets/{}/file'.format(
-            c.HOME, c.API_0, self.workspace_id, self._dataset_id)
-        r = c._auth_get(url, return_response=True)
+            self.client.HOME, self.client.API_0,
+            self.workspace_id, self._dataset_id)
+
+        r = self.client._auth_get(url, return_response=True)
         tsv_bytes = BytesIO(r.content)
 
         # Convert into a pd.DataFrame
@@ -266,6 +234,7 @@ class Collection():
                 'Use an index above 0, not {}'.format(row_idx))
 
         lookup = self._get_image_meta_lookup(source=source)
+
         try:
             return lookup[row_idx]
         except IndexError:
@@ -285,6 +254,7 @@ class Collection():
                 'Use an index above 0, not {}'.format(imageset_index))
 
         lookup = self._get_image_meta_lookup(source=source)
+
         try:
             return lookup.index(imageset_index)
         except ValueError:
@@ -329,14 +299,17 @@ class Collection():
 
         This would return rows which has tags in the tag_names.
         """
-        assert type(tag_names) == list,\
-            'Expected tag_names to be a list, not a {}'.format(type(tag_names))
+
+        if type(tag_names) != list:
+            raise TypeError('Expected tag_names to be a list, not a {}'
+                            .format(type(tag_names)))
 
         row_indices = set()
         for tag in tag_names:
             if tag in self.tags.keys():
                 row_indices.update(self.tags[tag])
         rows = self.rows.iloc[list(row_indices)]
+
         return rows
 
     def get_image_urls(self, rows=None, source=0, generate_signed_urls=False,
@@ -365,7 +338,8 @@ class Collection():
             elif type(rows) == int:
                 indices = [rows]
             else:
-                raise ValueError('Invalid rows argument, \'{}\' not supported'.format(type(rows)))
+                raise ValueError('Invalid rows argument, \'{}\' not supported'
+                                 .format(type(rows)))
         else:
             indices = [i for i in range(len(self))]
 
@@ -416,12 +390,11 @@ class Collection():
         format.
         """
 
-        zc = self.client
-
         url = '{}/{}/project/{}/annotations/{}'.format(
-            zc.HOME, zc.API_1, self.workspace.id, annotation_id)
+            self.client.HOME, self.client.API_1, self.workspace.id,
+            annotation_id)
 
-        return zc._auth_get(url)
+        return self.client._auth_get(url)
 
     def replace_data(self, data, fail_if_not_ready=True):
         """
@@ -615,46 +588,58 @@ class Collection():
             tags[record['tag']].append(record['key'])
         return tags
 
-    def get_annotations(self, anno_type=None) -> dict:
+    def get_annotations(self, anno_type=None, source=0) -> dict:
         """
         Gets the annotations of a collection.
         Defaults to searching for annotations of all types.
+        In V1 collections, the source argument is ignored.
         """
 
-        c = self.client
-        url = '{}/{}/project/{}/annotations/collection/{}'.format(
-            c.HOME, c.API_1, self.workspace_id, self.id)
+        if self.version < 2:
+            url = '{}/{}/project/{}/annotations/collection/{}'.format(
+                self.client.HOME, self.client.API_1, self.workspace_id,
+                self.id)
+        else:
+            source = self._parse_source(source)
+            url = '{}/{}/project/{}/annotations/collection/{}/source/{}'\
+                .format(self.client.HOME, self.client.API_1, self.workspace_id,
+                        self.id, source.id)
 
         if anno_type is not None:
             url += '?type=' + anno_type
 
-        return c._auth_get(url)
+        annos = self.client._auth_get(url)
+
+        if self.version < 2:
+            annos = annos['sources'][0]
+
+        return annos['annotations']
 
     def get_annotations_for_image(
-            self, row_index, source=None, anno_type=None) -> list:
+            self, row_index, source=0, anno_type=None) -> list:
         """
         Returns annotations for a single item in the collection.
         Defaults to searching for annotations of all types.
         """
 
-        if source is not None:
-            self._source_warning()
+        source = self._parse_source(source)
 
-        assert type(row_index) == int and row_index >= 0,\
-            'Expected row_index to be a positive int, not {}'.format(row_index)
+        if type(row_index) != int or row_index < 0:
+            raise ValueError(
+                'Expected row_index to be a positive int, not {}'
+                .format(row_index))
 
-        c = self.client
-        lookup = self._get_image_meta_lookup()
-        imageset_index = lookup[row_index]
+        imageset_index = self.row_index_to_imageset_index(
+            row_index, source=source)
 
         url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'\
-            .format(c.HOME, c.API_1, self.workspace_id,
+            .format(self.client.HOME, self.client.API_1, self.workspace_id,
                     self._get_imageset_id(), imageset_index)
 
         if anno_type is not None:
             url += '?type=' + anno_type
 
-        return c._auth_get(url)
+        return self.client._auth_get(url)
 
     def upload_annotation(self, uploadable, row_index=None, image_index=None,
                           source=None, author=None, debug=False):
@@ -931,35 +916,24 @@ class Collection():
         for d in self.classes:
             print(d)
 
-    def _check_data(self) -> None:
+    def _retrieve(self, key):
+        """Retrieve a key from self._data, with a friendly error on failure."""
 
-        if not self._data:
-            raise ValueError('Collection had no self._data set')
-
-        if type(self._data) != dict:
-            raise TypeError(
-                'Collection didn\'t have a dict for its data ({})'
-                .format(type(self._data)))
-
-    def _check_version(self) -> None:
-
-        v = self.version
-        class_v = 2 if isinstance(self, CollectionV2) else 1
-
-        if v != class_v:
-            raise ValueError(
-                'Collection data indicates the class used to construct this '
-                'collection is the wrong version. v{} class vs v{} data'
-                .format(class_v, v))
+        if key not in self._data:
+            raise KeyError(
+                'Collection did not find requested key "{}" in its _data'
+                .format(key))
+        return self._data[key]
 
     def _get_imageset_id(self, source=0) -> str:
+        """
+        Returns imageset_id of the collection. If using V2+, can optionally
+        provide a source for that source's imageset_id instead.
+        """
 
-        self._check_data()
-        if 'imageset_id' not in self._data:
-            raise KeyError(
-                'Collection\'s data didn\'t have an \'imageset_id\' key')
+        source = self._parse_source(source)
 
-        return self._data['imageset_id']
+        return source.imageset_id
 
     def _join_id_to_lookup(self, join_id) -> list:
         """
@@ -986,164 +960,11 @@ class Collection():
             return {k: k for k in range(100000)}
 
     def _get_image_meta_lookup(self, source=0) -> list:
-        """Used to convert between image and row space."""
-
-        # If this has already been cached, return that
-        if self.allow_caching and self._cached_image_meta_lookup:
-            self._check_data()
-            return self._cached_image_meta_lookup
-
-        key = 'imageset_dataset_join_id'
-        if key not in self._data.keys():
-            raise KeyError(
-                'Collection: Key "{}" not found in self._data'.format(key))
-
-        join_id = self._data[key]
-        lookup = self._join_id_to_lookup(join_id)
-
-        # If caching, store it for later
-        if self.allow_caching:
-            self._cached_image_meta_lookup = lookup
-
-        return lookup
-
-    @staticmethod
-    def _source_warning() -> None:
-        print(
-            'Warning - Called with a source when this is not a '
-            'multi-image-source collection. Treating as if no source '
-            'was required.')
-
-    def __len__(self) -> int:
-        self._check_data()
-        key = 'total_data_items'
-        if key not in self._data.keys():
-            raise KeyError(
-                'Collection\'s self._data was missing the key "{}"'
-                .format(key))
-        return self._data[key]
-
-    def __repr__(self) -> str:
-        return "<Collection id={} name={}>".format(self.id, self.name)
-
-    def id_to_class(self, ID):
-        return self.classes[ID - 1]['name']
-
-    def get_annotations_metadata_to_csv(self, outpath='output.csv',
-                                        anno_type=None) -> pd.DataFrame:
-        """Creates a .csv file with annotations metadata from a collection.
-        Defaults to searching for annotations of all types.
-        """
-        metadata = self.get_annotations_metadata(anno_type)
-        metadata.to_csv(outpath)
-        print('Saved annotations metadata at "{}".'.format(outpath))
-        return metadata
-
-    def get_annotations_metadata(self, anno_type=None) -> pd.DataFrame:
-        """Compute pandas.DataFrame of annotations metadata from a collection.
-        Defaults to searching for annotations of all types.
-        """
-        annos = self.get_annotations(anno_type=anno_type)['annotations']
-        metadata = pd.DataFrame()
-        for i, anno in enumerate(annos):
-            row = {**{'Image': anno['image_index'],
-                      'ID': anno['id'],
-                      'Class': self.id_to_class(int(anno['class_id']))},
-                   **anno['metadata']}
-            metadata = metadata.append(row, ignore_index=True)
-            # Change order of columns
-        metadata = metadata[[metadata.columns[i] for i in (3, 2, 1, 0, 4, 5, 6)]]
-        return metadata
-
-
-class CollectionV2(Collection):
-
-    def clear_cache(self):
-        super().clear_cache()
-        self._cached_image_meta_source_lookups = {}
-
-    @property
-    def sources():
-        pass
-
-    @sources.getter
-    def sources(self) -> list:
-        """Returns all Source() instances belonging to this collection."""
-
-        if 'image_sources' not in self._data.keys():
-            raise KeyError(
-                'Expected to find \'image_sources\' in collection but '
-                'didn\'t: {}'.format(self._data))
-
-        return [Source(self, s) for s in self._data['image_sources']]
-
-    def show_sources(self):
-        """Lists the IDs and names of all sources in the collection."""
-
-        ss = self.sources
-        print('\nImage sources ({}):'.format(len(ss)))
-        for s in ss:
-            print('{} : {}'.format(s.imageset_id, s.name))
-
-    def get_annotations(self, source=0, anno_type=None) -> dict:
-        """
-        Gets annotations for a particular source of a collection.
-        Defaults to searching for annotations of all types.
-        """
-
-        source = self._parse_source(source)
-
-        url = '{}/{}/project/{}/annotations/collection/{}/source/{}'\
-            .format(self.client.HOME, self.client.API_1, self.workspace_id,
-                    self.id, source.id)
-        if anno_type is not None:
-            url += '?type=' + anno_type
-
-        return self.client._auth_get(url)
-
-    def get_annotations_for_image(
-            self, row_index, source=0, anno_type=None) -> list:
-        """
-        Returns annotations for a single item in the collection.
-        Defaults to searching for annotations of all types.
-        """
-
-        # Parse the source for a valid Source() instance
-        source = self._parse_source(source)
-
-        # Determine the imageset index
-        imageset_index = self.imageset_index_to_row_index(row_index, source)
-
-        # Download and return annotations of the requested type
-        url = '{}/{}/project/{}/annotations/imageset/{}/images/{}'\
-            .format(self.client.HOME, self.client.API_1, self.workspace_id,
-                    self._get_imageset_id(), imageset_index)
-        if anno_type is not None:
-            url += '?type=' + anno_type
-
-        return self.client._auth_get(url)
-
-    def _get_imageset_id(self, source=0) -> str:
-        """
-        Source can be an int or a Source instance associated with this
-        collection.
-        """
-
-        self._check_data()
-        self._check_version()
-        source = self._parse_source(source)
-
-        return source.imageset_id
-
-    def _get_image_meta_lookup(self, source=0) -> list:
         """
         Returns the image-meta lookup for converting between image and row
         space. There is a lookup for each Source in V2 collections, so caching
         keeps track of the relevent Source() lookups by join_id.
         """
-
-        self._check_data()
-        self._check_version()
 
         source = self._parse_source(source)
         join_id = source._imageset_dataset_join_id
@@ -1160,13 +981,54 @@ class CollectionV2(Collection):
 
         return lookup
 
-    def _parse_source(self, source):
+    @staticmethod
+    def _source_warning() -> None:
+        print(
+            'Warning - Called with a source when this is not a '
+            'multi-image-source collection. Treating as if no source '
+            'was required.')
+
+    def get_annotations_as_dataframe(
+            self, anno_type=None, source=0) -> pd.DataFrame:
         """
-        Accepts an int or a Source instance and always returns a checked
-        Source instance.
+        Collects all annotations of a type (or all if anno_type=None) and
+        returns the information as a dataframe.
+
+        Set succinct=False to get a dataframe containing all possible
+        unformatted annotation metadata.
         """
 
-        ss = self.sources
+        source = self._parse_source(source)
+
+        annos = self.get_annotations(
+            anno_type=anno_type, source=source)
+
+        def to_dict(a):
+            d = {
+                'Row Index': self.imageset_index_to_row_index(a['image_index']),
+                'ID': a['id'],
+                'Type': a['type'],
+                'Author': a['author'],
+                'Imageset Index': a['image_index'],
+            }
+            if 'metadata' in a.keys():
+                for k, v in a['metadata'].items():
+                    d[k] = v
+            return d
+
+        df = pd.DataFrame([to_dict(a) for a in annos])
+
+        return df
+
+    def _parse_source(self, source) -> Source:
+        """
+        Accepts an int or a Source instance and always returns a checked
+        Source instance. If a V1 collection, always returns the one and only
+        first source.
+        """
+
+        if self.version == 1:
+            return self.sources[0]
 
         # If an index is given, check the index is sensible and return a Source
         if type(source) == int:
@@ -1174,12 +1036,12 @@ class CollectionV2(Collection):
                 raise ValueError(
                     'Expected source to be a positive int, not {}'
                     .format(source))
-            if source >= len(ss):
+            if source >= len(self.sources):
                 raise ValueError(
                     'Source not valid for number of available sources (index '
                     '{} for list length {})'
-                    .format(source, len(ss)))
-            return ss[source]
+                    .format(source, len(self.sources)))
+            return self.sources[source]
 
         # If a Source is given, check it belongs to this collection and return
         if not isinstance(source, Source):
@@ -1187,12 +1049,11 @@ class CollectionV2(Collection):
                 'Provided source was neither an int nor a Source instance: {}'
                 .format(source))
 
-        for s in ss:
-            if s.id == source.id:
-                return source
+        try:
+            s = next(filter(lambda s: s.imageset_id == source.imageset_id, self.sources))
+        except StopIteration:
+            raise ValueError(
+                'Provided source with ID "{}" does not match any sources '
+                'associated with this collection'.format(source.name))
 
-        raise Exception('Provided source was a Source instance, but didn\'t '
-                        'belong to this collection ({})'.format(self.name))
-
-    def __repr__(self) -> str:
-        return "<Collection V2 id={} name={}>".format(self.id, self.name)
+        return s

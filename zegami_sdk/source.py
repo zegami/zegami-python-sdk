@@ -11,20 +11,19 @@ from tqdm import tqdm
 
 
 class Source():
+    """
+    A data structure representing information about a subset of a collection.
+    V1 collections have one source, V2+ can contain multiple each with their
+    own imagesets.
+    """
+
+    def __repr__(self):
+        return '<Source "{}" from Collection "{}", id: "{}"'.format(
+            self.name, self.collection.name, self.id)
 
     def __init__(self, collection, source_dict):
         self._collection = collection
         self._data = source_dict
-
-    @property
-    def name():
-        pass
-
-    @name.getter
-    def name(self):
-        assert self._data, 'Source had no self._data set'
-        assert 'name' in self._data.keys(), 'Source\'s data didn\'t have a \'name\' key'
-        return self._data['name']
 
     @property
     def collection():
@@ -35,14 +34,24 @@ class Source():
         return self._collection
 
     @property
+    def name():
+        pass
+
+    @name.getter
+    def name(self):
+        return self._retrieve('name')
+
+    @property
     def id():
         pass
 
     @id.getter
     def id(self):
-        assert self._data, 'Source had no self._data set'
-        assert 'source_id' in self._data, 'Source\'s data didn\'t have a \'source_id\' key'
-        return self._data['source_id']
+        """The .source_id of this Source. Note: Invalid for V1 collections."""
+
+        if self.collection.version < 2:
+            return None
+        return self._retrieve('source_id')
 
     @property
     def imageset_id():
@@ -50,9 +59,19 @@ class Source():
 
     @imageset_id.getter
     def imageset_id(self):
-        assert self._data, 'Source had no self._data set'
-        assert 'imageset_id' in self._data, 'Source\'s data didn\'t have an \'imageset_id\' key'
-        return self._data['imageset_id']
+        return self._retrieve('imageset_id')
+
+    @property
+    def index():
+        pass
+
+    @index.getter
+    def index(self) -> int:
+        """
+        The index/position of this source in its collection's .sources list.
+        """
+
+        return self.collection.sources.index(self)
 
     @property
     def _imageset_dataset_join_id():
@@ -60,10 +79,12 @@ class Source():
 
     @_imageset_dataset_join_id.getter
     def _imageset_dataset_join_id(self):
-        k = 'imageset_dataset_join_id'
-        assert self._data, 'Source had no self._data set'
-        assert k in self._data, 'Source\'s data didn\'t have an \'{}\' key'.format(k)
-        return self._data[k]
+        return self._retrieve('imageset_dataset_join_id')
+
+    def _retrieve(self, key):
+        if key not in self._data:
+            raise KeyError('Key "{}" not found in Source _data'.format(key))
+        return self._data[key]
 
 
 class UploadableSource():
