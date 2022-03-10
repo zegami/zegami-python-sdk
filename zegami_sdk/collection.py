@@ -1028,16 +1028,6 @@ class Collection():
     def id_to_class(self, ID):
         return self.classes[ID - 1]['name']
 
-    def get_annotations_metadata_to_csv(self, outpath='output.csv',
-                                        anno_type=None) -> pd.DataFrame:
-        """Creates a .csv file with annotations metadata from a collection.
-        Defaults to searching for annotations of all types.
-        """
-        metadata = self.get_annotations_metadata(anno_type)
-        metadata.to_csv(outpath)
-        print('Saved annotations metadata at "{}".'.format(outpath))
-        return metadata
-
     def get_annotations_metadata(self, anno_type=None) -> pd.DataFrame:
         """Compute pandas.DataFrame of annotations metadata from a collection.
         Defaults to searching for annotations of all types.
@@ -1050,8 +1040,6 @@ class Collection():
                       'Class': self.id_to_class(int(anno['class_id']))},
                    **anno['metadata']}
             metadata = metadata.append(row, ignore_index=True)
-            # Change order of columns
-        metadata = metadata[[metadata.columns[i] for i in (3, 2, 1, 0, 4, 5, 6)]]
         return metadata
 
 
