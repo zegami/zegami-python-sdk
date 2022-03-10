@@ -1008,9 +1008,9 @@ class Collection():
         def to_dict(a):
             d = {}
             if classes and 'class_id' in a.keys():
-                c = next(filter(lambda c: c['id'] == a['class_id'], classes))
+                c = next(filter(lambda c: int(c['id']) == int(a['class_id']), classes))
                 d['Class'] = c['name']
-                d['Class ID'] = c['id']
+                d['Class ID'] = int(c['id'])
             d['Type'] = a['type']
             d['Author'] = a['author']
             d['Row Index'] = self.imageset_index_to_row_index(a['image_index'])
