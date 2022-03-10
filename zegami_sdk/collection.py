@@ -1003,14 +1003,19 @@ class Collection():
         annos = self.get_annotations(
             anno_type=anno_type, source=source)
 
+        classes = self.classes
+
         def to_dict(a):
-            d = {
-                'Row Index': self.imageset_index_to_row_index(a['image_index']),
-                'ID': a['id'],
-                'Type': a['type'],
-                'Author': a['author'],
-                'Imageset Index': a['image_index'],
-            }
+            d = {}
+            if classes and 'class_id' in a.keys():
+                c = next(filter(lambda c: c['id'] == a['class_id'], classes))
+                d['Class'] = c['name']
+                d['Class ID'] = c['id']
+            d['Type'] = a['type']
+            d['Author'] = a['author']
+            d['Row Index'] = self.imageset_index_to_row_index(a['image_index'])
+            d['Imageset Index'] = a['image_index']
+            d['ID'] = a['id']
             if 'metadata' in a.keys():
                 for k, v in a['metadata'].items():
                     d[k] = v
