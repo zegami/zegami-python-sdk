@@ -736,26 +736,31 @@ class Collection():
 
         return r
 
-    def delete_all_annotations(self, source=0):
-        """Deletes all annotations saved to the collection."""
+    def delete_all_annotations(self, only_for_source=None):
+        """
+        Deletes all annotations saved to the collection. By default this
+        operation deletes all annotations from all sources. Provide a
+        specific source (instance or index) to limit this to a particular
+        source.
+        """
 
-        # A list of sources of annotations
-        anno_sources = self.get_annotations()['sources']
+        # Get the sources to delete annotations from
+        scoped_sources = self.sources if only_for_source is None\
+            else [self._parse_source(only_for_source)]
 
         c = 0
-        for i, source in enumerate(anno_sources):
+        for source in scoped_sources:
 
-            # A list of annotation objects
-            annotations = source['annotations']
-            if len(annotations) == 0:
+            annos = self.get_annotations(source=source)
+            if len(annos) == 0:
                 continue
 
             print('Deleting {} annotations from source {}'
-                  .format(len(annotations), i))
+                  .format(len(annos), source.name))
 
-            for j, annotation in enumerate(annotations):
-                self.delete_annotation(annotation['id'])
-                print('\r{}/{}'.format(j + 1, len(annotations)), end='',
+            for j, anno in enumerate(annos):
+                self.delete_annotation(anno['id'])
+                print('\r{}/{}'.format(j + 1, len(annos)), end='',
                       flush=True)
                 c += 1
             print('')
