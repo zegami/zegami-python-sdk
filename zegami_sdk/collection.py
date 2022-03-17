@@ -998,9 +998,6 @@ class Collection():
         """
         Collects all annotations of a type (or all if anno_type=None) and
         returns the information as a dataframe.
-
-        Set succinct=False to get a dataframe containing all possible
-        unformatted annotation metadata.
         """
 
         source = self._parse_source(source)

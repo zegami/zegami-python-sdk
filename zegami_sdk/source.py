@@ -392,7 +392,7 @@ class UrlSource(UploadableSource):
 
         new_source = {
             "dataset_id": collection._dataset_id,
-            'transfer': {
+            'fetch': {
                 'headers': self.image_fetch_headers,
                 'url': {
                     'dataset_column': self.column_filename,
@@ -401,8 +401,6 @@ class UrlSource(UploadableSource):
             }
         }
         upload_ims['imageset']['source'] = new_source
-        # TODO: remove this when backend fixed transfer imageset to use sql storage
-        upload_ims['imageset']['imageinfo_storage'] = 'mongodb'
         payload = json.dumps(upload_ims['imageset'])
         r = c._auth_put(upload_ims_url, payload, return_response=True)
 
