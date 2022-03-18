@@ -65,7 +65,7 @@ class Workspace():
         if not collection_dicts:
             return []
         collection_dicts = collection_dicts['collections']
-        return [Collection._construct_collection(c, self, d) for d in collection_dicts]
+        return [Collection(c, self, d) for d in collection_dicts]
 
     def get_collection_by_name(self, name) -> Collection:
         """Obtains a collection by name (case-insensitive)."""
