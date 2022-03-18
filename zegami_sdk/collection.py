@@ -292,6 +292,56 @@ class Collection():
                 "Invalid imageset index {} for this source"
                 .format(imageset_index))
 
+    def add_feature_pipeline(self, name, steps, source=0):
+        # get the source
+        source = self._parse_source(source)
+
+        # find the feature extraction node
+        source_feature_extraction_node = None
+        
+        # Add each node in the list to the chain
+        tip_node_id = source_feature_extraction_node
+
+        for step in steps:
+            node = nodes.add_node(
+                self.client,
+                self.workspace_id,
+                action=step.action,
+                params=step.params,
+                type=None,  # TODO
+                dataset_parents=None,
+                imageset_parents=None,
+                processing_category='image_clustering',
+                node_group=self.node_group,
+                name="",  # TODO
+            )
+            tip_node_id = node['id']
+
+        # add node to map the output to row space
+        join_dataset_id = source._data.get('imageset_dataset_join_id')
+        mapping_node = nodes.add_node(
+            self.client,
+            self.workspace_id,
+            'mapping',
+            {},
+            dataset_parents=[tip_node_id, join_dataset_id],
+            name=name + " mapping",
+            node_group=self.node_group,
+            processing_category='image_clustering'
+        )
+
+        # add to the collection's output node
+        output_dataset_id = self._data.get('output_dataset_id')
+        nodes.add_parent(
+            self.client,
+            self.workspace_id,
+            output_dataset_id,
+            mapping_node.get('id')
+        )
+
+        # TODO generate snapshot
+
+
     def get_rows_by_filter(self, filters):
         """
         Gets rows of metadata in a collection by a flexible filter.
