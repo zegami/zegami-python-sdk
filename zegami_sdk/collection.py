@@ -255,7 +255,7 @@ class Collection():
         """The status of this collection as a fully processed or not."""
 
         return self.status['progress'] == 1
-    
+
     @property
     def node_statuses():
         pass
@@ -316,11 +316,11 @@ class Collection():
 
         # find the feature extraction node
         source_feature_extraction_node = self.get_feature_extraction_imageset_id(source)
-        
+
         join_dataset_id = source._imageset_dataset_join_id
         imageset_parents = [source_feature_extraction_node]
         dataset_parents = [self._dataset_id, join_dataset_id]
-        
+
         mRMR_node = nodes.add_node(
             self.client,
             self.workspace_id,
@@ -378,7 +378,6 @@ class Collection():
         )
 
         # TODO generate snapshot
-
 
     def get_rows_by_filter(self, filters):
         """
@@ -495,7 +494,7 @@ class Collection():
                     signed_route_urls.append(response['url'])
 
             return signed_route_urls
-    
+
     def get_feature_extraction_imageset_id(self, source=0) -> str:
         """Returns the feature extraction imageset id in the given source index."""
         source = self._parse_source(source)
@@ -503,7 +502,7 @@ class Collection():
         all_nodes = self.node_statuses
         for node in all_nodes:
             if (re.search("^Feature extraction imageset", node['name'])
-                and node['node_groups'][0] == 'source_{}'.format(source_name)):
+            and node['node_groups'][0] == 'source_{}'.format(source_name)):
                 return node["id"]
         return None
 
@@ -1209,7 +1208,6 @@ class CollectionV2(Collection):
             url += '?type=' + anno_type
 
         return self.client._auth_get(url)
-
 
     def _get_imageset_id(self, source=0) -> str:
         """
