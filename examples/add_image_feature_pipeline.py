@@ -16,20 +16,26 @@ collection.add_feature_pipeline(
     source=0,   # index of source to use
     steps=[     # list of nodes which would feed one into the other in sequence
         {
-            'mRMR': {
+            'action': 'mRMR',
+            'params': {
                 'target_column': 'lipid_volume',
-                'n_components': 20,
+                'K': 20,
             },
         },
         {
-            'UMAP': {
-                'n_components': 2,
-                "n_neighbors": 15,
-                "min_dist": 0.5,
-                "spread": 2,
-                "random_state": 123,
-                "target_weight": 0.8,
-                "target_metric": "continuous"
+            'action': 'cluster',
+            'params': {
+                "out_column_start_order": 1010,
+                'algorithm_args': {
+                    'algorithm': 'umap',
+                    'n_components': 2,
+                    "n_neighbors": 15,
+                    "min_dist": 0.5,
+                    "spread": 2,
+                    "random_state": 123,
+                    "target_weight": 0.8,
+                    "target_metric": "continuous"
+                }
             }
         }
     ],

@@ -6,12 +6,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 import json
+import re
 import os
 from time import time
 import pandas as pd
 from PIL import Image, UnidentifiedImageError
 
 from .source import Source, UploadableSource
+from .nodes import nodes
 
 
 class Collection():
@@ -253,6 +255,18 @@ class Collection():
         """The status of this collection as a fully processed or not."""
 
         return self.status['progress'] == 1
+    
+    @property
+    def node_statuses():
+        pass
+
+    @node_statuses.getter
+    def node_statuses(self):
+        """All nodes and statuses that belong to the collection."""
+        url = '{}/{}/project/{}/collections/{}/node_statuses'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        resp = self.client._auth_get(url)
+        return resp
 
     def row_index_to_imageset_index(self, row_idx, source=0) -> int:
         """
@@ -295,36 +309,60 @@ class Collection():
     def add_feature_pipeline(self, name, steps, source=0):
         # get the source
         source = self._parse_source(source)
+        node_group = [
+            'source_{}'.format(source.name),
+            'collection_{}'.format(self.id),
+        ]
 
         # find the feature extraction node
-        source_feature_extraction_node = None
+        source_feature_extraction_node = self.get_feature_extraction_imageset_id(source)
         
-        # Add each node in the list to the chain
-        tip_node_id = source_feature_extraction_node
+        join_dataset_id = source._imageset_dataset_join_id
+        imageset_parents = [source_feature_extraction_node]
+        dataset_parents = [self._dataset_id, join_dataset_id]
+        
+        mRMR_node = nodes.add_node(
+            self.client,
+            self.workspace_id,
+            action=steps[0]['action'],
+            params=steps[0]['params'],
+            type="imageset",
+            dataset_parents=dataset_parents,
+            imageset_parents=imageset_parents,
+            processing_category='image_clustering',
+            node_group=node_group,
+            name="mRMR imageset for {} of {}".format(source.name, self.name),
+        )
 
-        for step in steps:
-            node = nodes.add_node(
-                self.client,
-                self.workspace_id,
-                action=step.action,
-                params=step.params,
-                type=None,  # TODO
-                dataset_parents=None,
-                imageset_parents=None,
-                processing_category='image_clustering',
-                node_group=self.node_group,
-                name="",  # TODO
-            )
-            tip_node_id = node['id']
+        cluster_params = steps[1]['params']
+        cluster_params["out_column_titles"] = [
+            "mRMR Image Similarity x ({})".format(source.name),
+            "mRMR Image Similarity y ({})".format(source.name),
+        ]
+        cluster_params["out_columns"] = [
+            "mRMR_image_similarity_x_{}".format(source.name),
+            "mRMR_image_similarity_y_{}".format(source.name),
+        ]
+        cluster_node = nodes.add_node(
+            self.client,
+            self.workspace_id,
+            action=steps[1]['action'],
+            params=cluster_params,
+            type="dataset",
+            dataset_parents=None,
+            imageset_parents=[mRMR_node],
+            processing_category='image_clustering',
+            node_group=node_group,
+            name="Image clustering dataset for {} of {}".format(source.name, self.name),
+        )
 
         # add node to map the output to row space
-        join_dataset_id = source._data.get('imageset_dataset_join_id')
         mapping_node = nodes.add_node(
             self.client,
             self.workspace_id,
             'mapping',
             {},
-            dataset_parents=[tip_node_id, join_dataset_id],
+            dataset_parents=[cluster_node, join_dataset_id],
             name=name + " mapping",
             node_group=self.node_group,
             processing_category='image_clustering'
@@ -457,6 +495,17 @@ class Collection():
                     signed_route_urls.append(response['url'])
 
             return signed_route_urls
+    
+    def get_feature_extraction_imageset_id(self, source=0) -> str:
+        """Returns the feature extraction imageset id in the given source index."""
+        source = self._parse_source(source)
+        source_name = source.name
+        all_nodes = self.node_statuses
+        for node in all_nodes:
+            if (re.search("^Feature extraction imageset", node['name'])
+                and node['node_groups'][0] == 'source_{}'.format(source_name)):
+                return node["id"]
+        return None
 
     def download_annotation(self, annotation_id):
         """
@@ -1160,6 +1209,7 @@ class CollectionV2(Collection):
             url += '?type=' + anno_type
 
         return self.client._auth_get(url)
+
 
     def _get_imageset_id(self, source=0) -> str:
         """
