@@ -305,6 +305,18 @@ class Collection():
             raise IndexError(
                 "Invalid imageset index {} for this source"
                 .format(imageset_index))
+    
+    def add_snapshot(self, name, desc, snapshot):
+        url = '{}/{}/project/{}/snapshots/{}/snapshots'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        payload = {
+            'name': name,
+            'description': desc,
+            'snapshot': snapshot,
+            'version': 3,
+        }
+        r = self.client._auth_post(url, json.dumps(payload), return_response=True)
+        return r
 
     def add_feature_pipeline(self, name, steps, source=0, generate_snapshot=False):
         # get the source
@@ -313,6 +325,8 @@ class Collection():
             'source_{}'.format(source.name),
             'collection_{}'.format(self.id),
         ]
+
+        mRMR_params = steps[0]['params']
 
         # find the feature extraction node
         source_feature_extraction_node = self.get_feature_extraction_imageset_id(source)
@@ -325,7 +339,7 @@ class Collection():
             self.client,
             self.workspace,
             action=steps[0]['action'],
-            params=steps[0]['params'],
+            params=mRMR_params,
             type="imageset",
             dataset_parents=dataset_parents,
             imageset_parents=imageset_parents,
@@ -339,9 +353,10 @@ class Collection():
             "mRMR Image Similarity x ({})".format(source.name),
             "mRMR Image Similarity y ({})".format(source.name),
         ]
+        target_column_stripped = mRMR_params['target_column'].replace(' ', '').replace('-', '').lower()
         cluster_params["out_columns"] = [
-            "mRMR_image_similarity_x_{}".format(source.name),
-            "mRMR_image_similarity_y_{}".format(source.name),
+            "mRMR_image_similarity_x_{}_{}_{}".format(source.name, target_column_stripped, mRMR_params['K']),
+            "mRMR_image_similarity_y_{}_{}_{}".format(source.name, target_column_stripped, mRMR_params['K']),
         ]
         cluster_node = add_node(
             self.client,
@@ -377,7 +392,17 @@ class Collection():
             mapping_node.get('dataset').get('id')
         )
 
-        # TODO generate snapshot
+        # generate snapshot
+        if generate_snapshot:
+            snapshot_name = 'mRMR Image Similarity View ({})'.format(source.name)
+            snapshot_desc = 'Target column is {}, K value is {}'.format(mRMR_params['target_column'], mRMR_params['K'])
+            snapshot_payload = {
+                'view': 'scatter',
+                'sc_h': 'mRmrimagesimilarityx{}{}{}'.format(source.name.lower(), target_column_stripped, mRMR_params['K']),
+                'sc_v': 'mRmrimagesimilarityy{}{}{}'.format(source.name.lower(), target_column_stripped, mRMR_params['K']),
+                'source': source.name
+            }
+            self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
 
     def get_rows_by_filter(self, filters):
         """
