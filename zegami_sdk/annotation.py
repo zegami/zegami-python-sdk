@@ -340,3 +340,50 @@ class AnnotationMask(_Annotation):
                            np.array(img), dtype='uint8')
 
         return arr_int > 127
+
+
+class AnnotationBB(_Annotation):
+    """
+    An annotation comprising a bounding box and some metadata.
+
+    Note: Providing imageset_id and image_index is not mandatory and can be
+    obtained automatically, but this is slow and can cause unnecessary
+    re-downloading of data.
+    """
+
+    TYPE = 'zc-boundingbox'
+    UPLOADABLE_DESCRIPTION = """
+        Bounding box annotation data includes the bounding box bounds,
+        a width and height, and score if generated
+        by a model (else None).
+    """
+
+    @classmethod
+    def create_uploadable(cls, bounds: dict, class_id) -> dict:
+        """
+        Creates a data package ready to be uploaded with a collection's
+        .upload_annotation().
+
+        Input 'bounds' is a dictionary of { x, y, width, height }, where x and
+        y are the coordinates of the top left point of the given bounding box.
+
+        Note: The output of this is NOT an annotation, it is used to upload
+        annotation data to Zegami, which when retrieved will form an
+        annotation.
+        """
+
+        data = {
+            'x': bounds['x'],
+            'y': bounds['y'],
+            'w': bounds['width'],
+            'h': bounds['height'],
+            'type': cls.TYPE,
+            'score': None
+        }
+
+        uploadable = super().create_uploadable()
+        uploadable['format'] = 'BB1'
+        uploadable['annotation'] = data
+        uploadable['class_id'] = int(class_id)
+
+        return uploadable
