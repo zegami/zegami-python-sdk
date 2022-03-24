@@ -367,7 +367,7 @@ class AnnotationBB(_Annotation):
         Creates a data package ready to be uploaded with a collection's
         .upload_annotation().
 
-        Input 'bounds' is a dictionary of { top, bottom, left, right } for the
+        Input 'bounds' is a dictionary of { height, width, x, y } for the
         edges of the given bounding box.
 
         Note: The output of this is NOT an annotation, it is used to upload
@@ -376,12 +376,11 @@ class AnnotationBB(_Annotation):
         """
 
         data = {
-            'xmin': int(bounds['left']),
-            'xmax': int(bounds['right']),
-            'ymin': int(bounds['top']),
-            'ymax': int(bounds['bottom']),
-            'width': int(bounds['right'] - bounds['left']),
-            'height': int(bounds['bottom'] - bounds['top']),
+            'type': cls.TYPE,
+            'x': int(bounds['x']),
+            'y': int(bounds['y']),
+            'w': int(bounds['width']),
+            'h': int(bounds['height']),
             'score': None
         }
 
