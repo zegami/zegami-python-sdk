@@ -376,10 +376,10 @@ class AnnotationBB(_Annotation):
         """
 
         data = {
-            'x': int(bounds['x']),
-            'y': int(bounds['y']),
-            'w': int(bounds['width']),
-            'h': int(bounds['height']),
+            'x': bounds['x'],
+            'y': bounds['y'],
+            'w': bounds['width'],
+            'h': bounds['height'],
             'type': cls.TYPE,
             'score': None
         }
