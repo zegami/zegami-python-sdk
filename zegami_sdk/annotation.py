@@ -346,9 +346,6 @@ class AnnotationBB(_Annotation):
     """
     An annotation comprising a bounding box and some metadata.
 
-    # TODO
-    To view the bounding boxes of an image, use bb.view().
-
     Note: Providing imageset_id and image_index is not mandatory and can be
     obtained automatically, but this is slow and can cause unnecessary
     re-downloading of data.
