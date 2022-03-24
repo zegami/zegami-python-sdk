@@ -387,3 +387,46 @@ class AnnotationBB(_Annotation):
         uploadable['class_id'] = int(class_id)
 
         return uploadable
+
+
+class AnnotationPolygon(_Annotation):
+    """
+    An annotation comprising a polygon and some metadata.
+
+    Note: Providing imageset_id and image_index is not mandatory and can be
+    obtained automatically, but this is slow and can cause unnecessary
+    re-downloading of data.
+    """
+
+    TYPE = 'zc-polygon'
+    UPLOADABLE_DESCRIPTION = """
+        Polygon annotation data includes the coordinates of the
+        polygon points (vertices), and score if generated
+        by a model (else None).
+    """
+
+    @classmethod
+    def create_uploadable(cls, points: list, class_id) -> dict:
+        """
+        Creates a data package ready to be uploaded with a collection's
+        .upload_annotation().
+
+        Input 'points' is a list of (x, y) coordinates for each vertex of the polygon.
+
+        Note: The output of this is NOT an annotation, it is used to upload
+        annotation data to Zegami, which when retrieved will form an
+        annotation.
+        """
+
+        data = {
+            'points': points,
+            'type': cls.TYPE,
+            'score': None
+        }
+
+        uploadable = super().create_uploadable()
+        uploadable['format'] = 'BB1'
+        uploadable['annotation'] = data
+        uploadable['class_id'] = int(class_id)
+
+        return uploadable
