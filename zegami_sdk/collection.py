@@ -13,7 +13,7 @@ import pandas as pd
 from PIL import Image, UnidentifiedImageError
 
 from .source import Source, UploadableSource
-from .nodes import nodes
+from .nodes import *
 
 
 class Collection():
@@ -306,7 +306,7 @@ class Collection():
                 "Invalid imageset index {} for this source"
                 .format(imageset_index))
 
-    def add_feature_pipeline(self, name, steps, source=0):
+    def add_feature_pipeline(self, name, steps, source=0, generate_snapshot=False):
         # get the source
         source = self._parse_source(source)
         node_group = [
@@ -321,9 +321,9 @@ class Collection():
         imageset_parents = [source_feature_extraction_node]
         dataset_parents = [self._dataset_id, join_dataset_id]
 
-        mRMR_node = nodes.add_node(
+        mRMR_node = add_node(
             self.client,
-            self.workspace_id,
+            self.workspace,
             action=steps[0]['action'],
             params=steps[0]['params'],
             type="imageset",
@@ -343,38 +343,38 @@ class Collection():
             "mRMR_image_similarity_x_{}".format(source.name),
             "mRMR_image_similarity_y_{}".format(source.name),
         ]
-        cluster_node = nodes.add_node(
+        cluster_node = add_node(
             self.client,
-            self.workspace_id,
+            self.workspace,
             action=steps[1]['action'],
             params=cluster_params,
             type="dataset",
-            dataset_parents=None,
-            imageset_parents=[mRMR_node],
+            dataset_parents=mRMR_node.get('imageset').get('id'),
+            imageset_parents=None,
             processing_category='image_clustering',
             node_group=node_group,
             name="Image clustering dataset for {} of {}".format(source.name, self.name),
         )
 
         # add node to map the output to row space
-        mapping_node = nodes.add_node(
+        mapping_node = add_node(
             self.client,
-            self.workspace_id,
+            self.workspace,
             'mapping',
             {},
-            dataset_parents=[cluster_node, join_dataset_id],
+            dataset_parents=[cluster_node.get('dataset').get('id'), join_dataset_id],
             name=name + " mapping",
-            node_group=self.node_group,
+            node_group=node_group,
             processing_category='image_clustering'
         )
 
         # add to the collection's output node
         output_dataset_id = self._data.get('output_dataset_id')
-        nodes.add_parent(
+        add_parent(
             self.client,
-            self.workspace_id,
+            self.workspace,
             output_dataset_id,
-            mapping_node.get('id')
+            mapping_node.get('dataset').get('id')
         )
 
         # TODO generate snapshot
