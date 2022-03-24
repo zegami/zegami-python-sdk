@@ -362,13 +362,13 @@ class AnnotationBB(_Annotation):
     """
 
     @classmethod
-    def create_uploadable(cls, bounds, class_id):
+    def create_uploadable(cls, bounds: dict, class_id) -> dict:
         """
         Creates a data package ready to be uploaded with a collection's
         .upload_annotation().
 
-        Input 'bounds' is a dictionary of { height, width, x, y } for the
-        edges of the given bounding box.
+        Input 'bounds' is a dictionary of { x, y, width, height }, where x and
+        y are the coordinates of the top left point of the given bounding box.
 
         Note: The output of this is NOT an annotation, it is used to upload
         annotation data to Zegami, which when retrieved will form an
@@ -376,11 +376,11 @@ class AnnotationBB(_Annotation):
         """
 
         data = {
-            'type': cls.TYPE,
             'x': int(bounds['x']),
             'y': int(bounds['y']),
             'w': int(bounds['width']),
             'h': int(bounds['height']),
+            'type': cls.TYPE,
             'score': None
         }
 
