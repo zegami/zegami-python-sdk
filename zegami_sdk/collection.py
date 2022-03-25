@@ -6,7 +6,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 import json
-import re
 import os
 from time import time
 import pandas as pd
@@ -354,10 +353,10 @@ class Collection():
             "{} Image Similarity x ({})".format(pipeline_name, source.name),
             "{} Image Similarity y ({})".format(pipeline_name, source.name),
         ]
-        pipeline_nam_stripped = pipeline_name.lower().replace(' ', '').replace('_', '').replace('-', '').replace('.', '')
+        pipeline_name_stripped = pipeline_name.lower().replace(' ', '').replace('_', '').replace('-', '').replace('.', '')
         cluster_params["out_columns"] = [
-            "image_similarity_x_{}_{}".format(source.name, pipeline_nam_stripped),
-            "image_similarity_y_{}_{}".format(source.name, pipeline_nam_stripped),
+            "image_similarity_x_{}_{}".format(source.name, pipeline_name_stripped),
+            "image_similarity_y_{}_{}".format(source.name, pipeline_name_stripped),
         ]
         cluster_node = add_node(
             self.client,
@@ -399,8 +398,8 @@ class Collection():
             snapshot_desc = 'Target column is {}, K value is {}'.format(mRMR_params['target_column'], mRMR_params['K'])
             snapshot_payload = {
                 'view': 'scatter',
-                'sc_h': 'imageSimilarityx{}'.format(source.name.lower(), pipeline_nam_stripped),
-                'sc_v': 'imageSimilarityy{}'.format(source.name.lower(), pipeline_nam_stripped),
+                'sc_h': 'imageSimilarityx{}{}'.format(source.name.lower(), pipeline_name_stripped),
+                'sc_v': 'imageSimilarityy{}{}'.format(source.name.lower(), pipeline_name_stripped),
                 'source': source.name
             }
             self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
