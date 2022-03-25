@@ -353,7 +353,8 @@ class Collection():
             "{} Image Similarity x ({})".format(pipeline_name, source.name),
             "{} Image Similarity y ({})".format(pipeline_name, source.name),
         ]
-        pipeline_name_stripped = pipeline_name.lower().replace(' ', '').replace('_', '').replace('-', '').replace('.', '')
+        pipeline_name_stripped = (pipeline_name.lower().
+            replace(' ', '').replace('_', '').replace('-', '').replace('.', ''))
         cluster_params["out_columns"] = [
             "image_similarity_x_{}_{}".format(source.name, pipeline_name_stripped),
             "image_similarity_y_{}_{}".format(source.name, pipeline_name_stripped),
@@ -527,7 +528,7 @@ class Collection():
         all_nodes = self.node_statuses
         for node in all_nodes:
             if ('image_feature_extraction' in node['source'].keys() and
-                node['node_groups'][0] == 'source_{}'.format(source_name)):
+                    node['node_groups'][0] == 'source_{}'.format(source_name)):
                 return node["id"]
         return None
 
