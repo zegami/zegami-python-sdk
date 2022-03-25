@@ -276,6 +276,8 @@ class Workspace():
             .format(name, len(uploadable_sources), plural_str, data_str)
         )
 
+        return self.get_collection_by_id(blank_id)
+
     def __len__(self):
         len(self.collections)
 
