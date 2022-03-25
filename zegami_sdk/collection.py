@@ -863,9 +863,9 @@ class Collection():
             for s in uploadable_sources:
                 s._check_in_data(data)
 
-        # append rows to data
-        new_rows = self.rows.append(data)
-        self.replace_data(new_rows)
+            # append rows to data
+            new_rows = self.rows.append(data)
+            self.replace_data(new_rows)
 
         # validate and register uploadable sources against existing sources
         for s in uploadable_sources:

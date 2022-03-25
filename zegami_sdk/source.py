@@ -204,13 +204,13 @@ class UploadableSource():
                 .format(self.name, self.source.name)
             )
 
-    def _assign_images_to_smaller_lists(self, file_paths):
+    def _assign_images_to_smaller_lists(self, file_paths, start=0):
         """Create smaller lists based on the number of images in the directory."""
         # Recurse and pick up only valid files (either with image extensions, or not on blacklist)
         total_work = len(file_paths)
         workloads = []
         workload = []
-        start = 0
+        workload_start = start
 
         if total_work > 2500:
             size = 100
@@ -225,9 +225,9 @@ class UploadableSource():
             workload.append(path)
             i += 1
             if len(workload) == size or i == total_work:
-                workloads.append({'paths': workload, 'start': start})
+                workloads.append({'paths': workload, 'start': workload_start})
                 workload = []
-                start = i
+                workload_start = start + i
 
         return workloads, total_work, size
 
@@ -253,9 +253,12 @@ class UploadableSource():
 
         # Tell the server how many uploads are expected for this source
         url = '{}/{}/project/{}/imagesets/{}/extend'.format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
-        c._auth_post(url, body=None, json={'delta': len(self)})
+        delta = len(self)
+        resp = c._auth_post(url, body=None, json={'delta': delta})
+        new_size = resp['new_size']
+        start = new_size - delta
 
-        (workloads, total_work, group_size) = self._assign_images_to_smaller_lists(self.filepaths)
+        (workloads, total_work, group_size) = self._assign_images_to_smaller_lists(self.filepaths, start=start)
 
         # Multiprocess upload the images
         # divide the filepaths into smaller groups
