@@ -324,7 +324,7 @@ class Collection():
             'source_{}'.format(source.name),
             'collection_{}'.format(self.id),
             'feature_pipeline_{}'.format(pipeline_name),
-        ]
+            ]
 
         mRMR_params = steps[0]['params']
 
