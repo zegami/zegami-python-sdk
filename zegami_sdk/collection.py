@@ -13,7 +13,7 @@ import pandas as pd
 from PIL import Image, UnidentifiedImageError
 
 from .source import Source, UploadableSource
-from .nodes import *
+from .nodes import add_node, add_parent
 
 
 class Collection():
@@ -305,7 +305,7 @@ class Collection():
             raise IndexError(
                 "Invalid imageset index {} for this source"
                 .format(imageset_index))
-    
+
     def add_snapshot(self, name, desc, snapshot):
         url = '{}/{}/project/{}/snapshots/{}/snapshots'.format(
             self.client.HOME, self.client.API_0, self.workspace_id, self.id)
@@ -318,12 +318,13 @@ class Collection():
         r = self.client._auth_post(url, json.dumps(payload), return_response=True)
         return r
 
-    def add_feature_pipeline(self, name, steps, source=0, generate_snapshot=False):
+    def add_feature_pipeline(self, pipeline_name, steps, source=0, generate_snapshot=False):
         # get the source
         source = self._parse_source(source)
         node_group = [
             'source_{}'.format(source.name),
             'collection_{}'.format(self.id),
+            'feature_pipeline_{}'.format(pipeline_name),
         ]
 
         mRMR_params = steps[0]['params']
@@ -345,18 +346,18 @@ class Collection():
             imageset_parents=imageset_parents,
             processing_category='image_clustering',
             node_group=node_group,
-            name="mRMR imageset for {} of {}".format(source.name, self.name),
+            name="{} imageset for {} of {}".format(pipeline_name, source.name, self.name),
         )
 
         cluster_params = steps[1]['params']
         cluster_params["out_column_titles"] = [
-            "mRMR Image Similarity x ({})".format(source.name),
-            "mRMR Image Similarity y ({})".format(source.name),
+            "{} Image Similarity x ({})".format(pipeline_name, source.name),
+            "{} Image Similarity y ({})".format(pipeline_name, source.name),
         ]
-        target_column_stripped = mRMR_params['target_column'].replace(' ', '').replace('-', '').lower()
+        pipeline_nam_stripped = pipeline_name.lower().replace(' ', '').replace('_', '').replace('-', '').replace('.', '')
         cluster_params["out_columns"] = [
-            "mRMR_image_similarity_x_{}_{}_{}".format(source.name, target_column_stripped, mRMR_params['K']),
-            "mRMR_image_similarity_y_{}_{}_{}".format(source.name, target_column_stripped, mRMR_params['K']),
+            "image_similarity_x_{}_{}".format(source.name, pipeline_nam_stripped),
+            "image_similarity_y_{}_{}".format(source.name, pipeline_nam_stripped),
         ]
         cluster_node = add_node(
             self.client,
@@ -368,7 +369,7 @@ class Collection():
             imageset_parents=None,
             processing_category='image_clustering',
             node_group=node_group,
-            name="Image clustering dataset for {} of {}".format(source.name, self.name),
+            name="{} Image clustering dataset for {} of {}".format(pipeline_name, source.name, self.name),
         )
 
         # add node to map the output to row space
@@ -378,7 +379,7 @@ class Collection():
             'mapping',
             {},
             dataset_parents=[cluster_node.get('dataset').get('id'), join_dataset_id],
-            name=name + " mapping",
+            name=pipeline_name + " mapping",
             node_group=node_group,
             processing_category='image_clustering'
         )
@@ -394,12 +395,12 @@ class Collection():
 
         # generate snapshot
         if generate_snapshot:
-            snapshot_name = 'mRMR Image Similarity View ({})'.format(source.name)
+            snapshot_name = '{} Image Similarity View ({})'.format(pipeline_name, source.name)
             snapshot_desc = 'Target column is {}, K value is {}'.format(mRMR_params['target_column'], mRMR_params['K'])
             snapshot_payload = {
                 'view': 'scatter',
-                'sc_h': 'mRmrimagesimilarityx{}{}{}'.format(source.name.lower(), target_column_stripped, mRMR_params['K']),
-                'sc_v': 'mRmrimagesimilarityy{}{}{}'.format(source.name.lower(), target_column_stripped, mRMR_params['K']),
+                'sc_h': 'imageSimilarityx{}'.format(source.name.lower(), pipeline_nam_stripped),
+                'sc_v': 'imageSimilarityy{}'.format(source.name.lower(), pipeline_nam_stripped),
                 'source': source.name
             }
             self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
