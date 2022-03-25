@@ -4,7 +4,6 @@ from zegami_sdk.client import ZegamiClient
 
 WORKSPACE_ID = ''
 COLLECTION_ID = ''
-NAME = 'Image Similarity 2'
 
 zc = ZegamiClient()
 
@@ -18,7 +17,7 @@ collection.add_feature_pipeline(
         {
             'action': 'mRMR',
             'params': {
-                'target_column': 'lipid_volume',
+                'target_column': 'weight',
                 'K': 20,
             },
         },
@@ -33,8 +32,6 @@ collection.add_feature_pipeline(
                     "min_dist": 0.5,
                     "spread": 2,
                     "random_state": 123,
-                    "target_weight": 0.8,
-                    "target_metric": "continuous"
                 }
             }
         }

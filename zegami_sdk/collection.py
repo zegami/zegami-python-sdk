@@ -527,8 +527,8 @@ class Collection():
         source_name = source.name
         all_nodes = self.node_statuses
         for node in all_nodes:
-            if (re.search("^Feature extraction imageset", node['name'])
-            and node['node_groups'][0] == 'source_{}'.format(source_name)):
+            if ('image_feature_extraction' in node['source'].keys() and
+                node['node_groups'][0] == 'source_{}'.format(source_name)):
                 return node["id"]
         return None
 
