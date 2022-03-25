@@ -323,8 +323,7 @@ class Collection():
         node_group = [
             'source_{}'.format(source.name),
             'collection_{}'.format(self.id),
-            'feature_pipeline_{}'.format(pipeline_name),
-            ]
+            'feature_pipeline_{}'.format(pipeline_name)]
 
         mRMR_params = steps[0]['params']
 
@@ -354,7 +353,7 @@ class Collection():
             "{} Image Similarity y ({})".format(pipeline_name, source.name),
         ]
         pipeline_name_stripped = (pipeline_name.lower().
-            replace(' ', '').replace('_', '').replace('-', '').replace('.', ''))
+                                  replace(' ', '').replace('_', '').replace('-', '').replace('.', ''))
         cluster_params["out_columns"] = [
             "image_similarity_x_{}_{}".format(source.name, pipeline_name_stripped),
             "image_similarity_y_{}_{}".format(source.name, pipeline_name_stripped),
