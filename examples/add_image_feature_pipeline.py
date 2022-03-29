@@ -38,3 +38,5 @@ collection.add_feature_pipeline(
     ],
     generate_snapshot=True
 )
+
+collection.get_feature_pipelines()

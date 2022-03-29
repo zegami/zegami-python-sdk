@@ -288,6 +288,9 @@ class Collection():
         return r
 
     def add_feature_pipeline(self, pipeline_name, steps, source=0, generate_snapshot=False):
+        """
+        Add mRMR, cluster, mapping nodes and update the merge node for the source.
+        """
         # get the source
         source = self._parse_source(source)
         node_group = [
