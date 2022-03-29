@@ -1228,7 +1228,7 @@ class Collection():
 
     def _parse_source(self, source) -> Source:
         """
-        Accepts an int or a Source instance and always returns a checked
+        Accepts an int or a Source instance or source name and always returns a checked
         Source instance. If a V1 collection, always returns the one and only
         first source.
         """
@@ -1248,6 +1248,14 @@ class Collection():
                     '{} for list length {})'
                     .format(source, len(self.sources)))
             return self.sources[source]
+        
+        # If a string is given, check the source name that matches
+        if type(source) == str:
+            for s in self.sources:
+                if s.name == source:
+                    return s
+            raise ValueError(
+                    'Cannot find a source with name'.format(source))
 
         # If a Source is given, check it belongs to this collection and return
         if not isinstance(source, Source):
