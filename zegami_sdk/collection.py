@@ -370,7 +370,7 @@ class Collection():
                 'source': source.name
             }
             self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
-    
+
     def get_feature_pipelines(self):
         """
         Get all feature pipelines in a collection.
@@ -420,9 +420,13 @@ class Collection():
             # check if node_groups contain 'feature_pipeline_'
             if node_groups and len(node_groups) == 3:
                 # get the source name after 'source_'
-                node_source_name = node_groups[0][7:]
+                node_source_name = [
+                    group for group in node_groups if group.startswith('source_')
+                    ][0][7:]
                 # get the source name after 'feature_pipeline_'
-                feature_pipeline_name = node_groups[2][17:]
+                feature_pipeline_name = [
+                    group for group in node_groups if group.startswith('feature_pipeline_')
+                    ][0][17:]
                 if feature_pipeline_name in feature_pipelines_nodes[node_source_name]:
                     feature_pipelines_nodes[node_source_name][feature_pipeline_name].append(node)
                 else:
@@ -450,7 +454,7 @@ class Collection():
                         }
                     ]
                 })
-        
+
         return feature_pipelines
 
     def get_rows_by_filter(self, filters):
@@ -1229,7 +1233,7 @@ class Collection():
 
         return df
 
-    def _parse_source(self, source) -> Source:
+    def _parse_source(self, source) -> Source:  # noqa: C901
         """
         Accepts an int or a Source instance or source name and always returns a checked
         Source instance. If a V1 collection, always returns the one and only
@@ -1251,14 +1255,13 @@ class Collection():
                     '{} for list length {})'
                     .format(source, len(self.sources)))
             return self.sources[source]
-        
+
         # If a string is given, check the source name that matches
         if type(source) == str:
             for s in self.sources:
                 if s.name == source:
                     return s
-            raise ValueError(
-                    'Cannot find a source with name'.format(source))
+            raise ValueError('Cannot find a source with name {}'.format(source))
 
         # If a Source is given, check it belongs to this collection and return
         if not isinstance(source, Source):
