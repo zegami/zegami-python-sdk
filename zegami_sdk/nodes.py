@@ -31,7 +31,7 @@ def add_node(
     }
 
     if node_group:
-        payload['node_groups'] = [node_group]
+        payload['node_groups'] = node_group
     if processing_category:
         payload['processing_category'] = processing_category
 

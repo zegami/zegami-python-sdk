@@ -12,6 +12,7 @@ import pandas as pd
 from PIL import Image, UnidentifiedImageError
 
 from .source import Source, UploadableSource
+from .nodes import add_node, add_parent
 
 
 class Collection():
@@ -222,6 +223,18 @@ class Collection():
 
         return self.status['progress'] == 1
 
+    @property
+    def node_statuses():
+        pass
+
+    @node_statuses.getter
+    def node_statuses(self):
+        """All nodes and statuses that belong to the collection."""
+        url = '{}/{}/project/{}/collections/{}/node_statuses'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        resp = self.client._auth_get(url)
+        return resp
+
     def row_index_to_imageset_index(self, row_idx, source=0) -> int:
         """
         Turn a row-space index into an imageset-space index. Typically used
@@ -261,6 +274,99 @@ class Collection():
             raise IndexError(
                 "Invalid imageset index {} for this source"
                 .format(imageset_index))
+
+    def add_snapshot(self, name, desc, snapshot):
+        url = '{}/{}/project/{}/snapshots/{}/snapshots'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        payload = {
+            'name': name,
+            'description': desc,
+            'snapshot': snapshot,
+            'version': 3,
+        }
+        r = self.client._auth_post(url, json.dumps(payload), return_response=True)
+        return r
+
+    def add_feature_pipeline(self, pipeline_name, steps, source=0, generate_snapshot=False):
+        # get the source
+        source = self._parse_source(source)
+        node_group = [
+            'source_{}'.format(source.name),
+            'collection_{}'.format(self.id),
+            'feature_pipeline_{}'.format(pipeline_name)]
+
+        mRMR_params = steps[0]['params']
+
+        # find the feature extraction node
+        source_feature_extraction_node = self.get_feature_extraction_imageset_id(source)
+
+        join_dataset_id = source._imageset_dataset_join_id
+        imageset_parents = [source_feature_extraction_node]
+        dataset_parents = [self._dataset_id, join_dataset_id]
+
+        mRMR_node = add_node(
+            self.client,
+            self.workspace,
+            action=steps[0]['action'],
+            params=mRMR_params,
+            type="imageset",
+            dataset_parents=dataset_parents,
+            imageset_parents=imageset_parents,
+            processing_category='image_clustering',
+            node_group=node_group,
+            name="{} imageset for {} of {}".format(pipeline_name, source.name, self.name),
+        )
+
+        cluster_params = steps[1]['params']
+        cluster_params["out_column_title_prefix"] = "{} Image Similarity ({})".format(pipeline_name, source.name)
+        pipeline_name_stripped = (pipeline_name.lower().
+                                  replace(' ', '').replace('_', '').replace('-', '').replace('.', ''))
+        cluster_params["out_column_name_prefix"] = "image_similarity_{}_{}".format(source.name, pipeline_name_stripped)
+        cluster_node = add_node(
+            self.client,
+            self.workspace,
+            action=steps[1]['action'],
+            params=cluster_params,
+            type="dataset",
+            dataset_parents=mRMR_node.get('imageset').get('id'),
+            imageset_parents=None,
+            processing_category='image_clustering',
+            node_group=node_group,
+            name="{} Image clustering dataset for {} of {}".format(pipeline_name, source.name, self.name),
+        )
+
+        # add node to map the output to row space
+        mapping_node = add_node(
+            self.client,
+            self.workspace,
+            'mapping',
+            {},
+            dataset_parents=[cluster_node.get('dataset').get('id'), join_dataset_id],
+            name=pipeline_name + " mapping",
+            node_group=node_group,
+            processing_category='image_clustering'
+        )
+
+        # add to the collection's output node
+        output_dataset_id = self._data.get('output_dataset_id')
+        add_parent(
+            self.client,
+            self.workspace,
+            output_dataset_id,
+            mapping_node.get('dataset').get('id')
+        )
+
+        # generate snapshot
+        if generate_snapshot:
+            snapshot_name = '{} Image Similarity View ({})'.format(pipeline_name, source.name)
+            snapshot_desc = 'Target column is {}, K value is {}'.format(mRMR_params['target_column'], mRMR_params['K'])
+            snapshot_payload = {
+                'view': 'scatter',
+                'sc_h': 'imageSimilarity{}{}0'.format(source.name.lower(), pipeline_name_stripped),
+                'sc_v': 'imageSimilarity{}{}1'.format(source.name.lower(), pipeline_name_stripped),
+                'source': source.name
+            }
+            self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
 
     def get_rows_by_filter(self, filters):
         """
@@ -381,6 +487,17 @@ class Collection():
                     signed_route_urls.append(response['url'])
 
             return signed_route_urls
+
+    def get_feature_extraction_imageset_id(self, source=0) -> str:
+        """Returns the feature extraction imageset id in the given source index."""
+        source = self._parse_source(source)
+        source_name = source.name
+        all_nodes = self.node_statuses
+        for node in all_nodes:
+            if ('image_feature_extraction' in node['source'].keys() and
+                    node['node_groups'][0] == 'source_{}'.format(source_name)):
+                return node["id"]
+        return None
 
     def download_annotation(self, annotation_id):
         """
