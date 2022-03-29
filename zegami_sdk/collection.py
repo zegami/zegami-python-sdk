@@ -422,11 +422,11 @@ class Collection():
                 # get the source name after 'source_'
                 node_source_name = [
                     group for group in node_groups if group.startswith('source_')
-                    ][0][7:]
+                ][0][7:]
                 # get the source name after 'feature_pipeline_'
                 feature_pipeline_name = [
                     group for group in node_groups if group.startswith('feature_pipeline_')
-                    ][0][17:]
+                ][0][17:]
                 if feature_pipeline_name in feature_pipelines_nodes[node_source_name]:
                     feature_pipelines_nodes[node_source_name][feature_pipeline_name].append(node)
                 else:
