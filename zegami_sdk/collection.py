@@ -445,7 +445,8 @@ class Collection():
                             'out_column_start_order',
                         ]
                         for param in unwanted_params:
-                            cluster_params.pop(param)
+                            if param in cluster_params:
+                                cluster_params.pop(param)
                     if 'mRMR' in node['source']:
                         mRMR_params = node['source']['mRMR']
                 feature_pipelines.append({
