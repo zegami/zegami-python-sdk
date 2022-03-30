@@ -288,6 +288,9 @@ class Collection():
         return r
 
     def add_feature_pipeline(self, pipeline_name, steps, source=0, generate_snapshot=False):
+        """
+        Add mRMR, cluster, mapping nodes and update the merge node for the source.
+        """
         # get the source
         source = self._parse_source(source)
         node_group = [
@@ -367,6 +370,92 @@ class Collection():
                 'source': source.name
             }
             self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
+
+    def get_feature_pipelines(self):
+        """
+        Get all feature pipelines in a collection.
+
+        Example shape:
+            feature_pipelines = [
+                {
+                    name='mRMR20',
+                    source=0,
+                    steps=[     # list of nodes which would feed one into the other in sequence
+                        {
+                            'action': 'mRMR',
+                            'params': {
+                                'target_column': 'weight',
+                                'K': 20,
+                            },
+                        },
+                        {
+                            'action': 'cluster',
+                            'params': {
+                                "out_column_start_order": 1010,
+                                'algorithm_args': {
+                                    'algorithm': 'umap',
+                                    'n_components': 2,
+                                    "n_neighbors": 15,
+                                    "min_dist": 0.5,
+                                    "spread": 2,
+                                    "random_state": 123,
+                                }
+                            }
+                        }
+                    ]
+                },
+            ]
+        """
+        all_nodes = self.node_statuses
+        source_names = [s.name for s in self.sources]
+        feature_pipelines = []
+
+        # nodes sorted by source and feature pipeline name
+        feature_pipelines_nodes = {}
+        for source_name in source_names:
+            feature_pipelines_nodes[source_name] = {}
+
+        for node in all_nodes:
+            node_groups = node.get('node_groups')
+            # check if node_groups contain 'feature_pipeline_'
+            if node_groups and len(node_groups) == 3:
+                # get the source name after 'source_'
+                node_source_name = [
+                    group for group in node_groups if group.startswith('source_')
+                ][0][7:]
+                # get the source name after 'feature_pipeline_'
+                feature_pipeline_name = [
+                    group for group in node_groups if group.startswith('feature_pipeline_')
+                ][0][17:]
+                if feature_pipeline_name in feature_pipelines_nodes[node_source_name]:
+                    feature_pipelines_nodes[node_source_name][feature_pipeline_name].append(node)
+                else:
+                    feature_pipelines_nodes[node_source_name][feature_pipeline_name] = [node]
+
+        for source_name in source_names:
+            source_pipelines = feature_pipelines_nodes[source_name]
+            for pipeline_name, nodes in source_pipelines.items():
+                for node in nodes:
+                    if 'cluster' in node['source']:
+                        cluster_params = node['source']['cluster']
+                    if 'mRMR' in node['source']:
+                        mRMR_params = node['source']['mRMR']
+                feature_pipelines.append({
+                    'pipeline_name': pipeline_name,
+                    'source_name': source_name,
+                    'steps': [
+                        {
+                            'action': 'mRMR',
+                            'params': mRMR_params,
+                        },
+                        {
+                            'action': 'cluster',
+                            'params': cluster_params,
+                        }
+                    ]
+                })
+
+        return feature_pipelines
 
     def get_rows_by_filter(self, filters):
         """
@@ -1144,9 +1233,9 @@ class Collection():
 
         return df
 
-    def _parse_source(self, source) -> Source:
+    def _parse_source(self, source) -> Source:  # noqa: C901
         """
-        Accepts an int or a Source instance and always returns a checked
+        Accepts an int or a Source instance or source name and always returns a checked
         Source instance. If a V1 collection, always returns the one and only
         first source.
         """
@@ -1166,6 +1255,13 @@ class Collection():
                     '{} for list length {})'
                     .format(source, len(self.sources)))
             return self.sources[source]
+
+        # If a string is given, check the source name that matches
+        if type(source) == str:
+            for s in self.sources:
+                if s.name == source:
+                    return s
+            raise ValueError('Cannot find a source with name {}'.format(source))
 
         # If a Source is given, check it belongs to this collection and return
         if not isinstance(source, Source):

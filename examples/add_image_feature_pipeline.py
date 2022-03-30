@@ -11,8 +11,8 @@ workspace = zc.get_workspace_by_id(WORKSPACE_ID)
 collection = workspace.get_collection_by_id(COLLECTION_ID)
 
 collection.add_feature_pipeline(
-    name='mRMR20',  # name would be used to derive column ids/titles
-    source=0,   # index of source to use
+    pipeline_name='mRMR20',  # name would be used to derive column ids/titles
+    source=0,   # index or name of source to use
     steps=[     # list of nodes which would feed one into the other in sequence
         {
             'action': 'mRMR',
@@ -38,3 +38,5 @@ collection.add_feature_pipeline(
     ],
     generate_snapshot=True
 )
+
+collection.get_feature_pipelines()
