@@ -24,7 +24,6 @@ collection.add_feature_pipeline(
         {
             'action': 'cluster',
             'params': {
-                "out_column_start_order": 1010,
                 'algorithm_args': {
                     'algorithm': 'umap',
                     'n_components': 2,
