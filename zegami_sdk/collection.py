@@ -371,7 +371,7 @@ class Collection():
             }
             self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
 
-    def get_feature_pipelines(self):
+    def get_feature_pipelines(self):  # noqa: C901
         """
         Get all feature pipelines in a collection.
 
