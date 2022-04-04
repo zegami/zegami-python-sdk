@@ -9,7 +9,7 @@ from zegami_sdk.client import ZegamiClient
 WORKSPACE_ID = ''
 COLLECTION_ID = ''
 datafile = r"path/to/file"
-is_production = True # Set as False if the collection is on staging
+is_production = True  # Set as False if the collection is on staging
 
 # Replace data
 
