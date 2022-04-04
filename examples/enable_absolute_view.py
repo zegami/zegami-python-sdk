@@ -9,7 +9,7 @@ WORKSPACE_ID = ''
 COLLECTION_ID = ''
 
 zc = ZegamiClient()
-w = zc.get_workspace_by_id(WORKSPACE_ID)
-c = w.get_collection_by_name(COLLECTION_ID)
+workspace = zc.get_workspace_by_id(WORKSPACE_ID)
+collection = workspace.get_collection_by_name(COLLECTION_ID)
 
-c.set_userdata({'enable_absolute_view': True})
+collection.set_userdata({'enable_absolute_view': True})
