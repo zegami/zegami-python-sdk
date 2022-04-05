@@ -363,7 +363,8 @@ class Collection():
         if generate_snapshot:
             snapshot_name = '{} Image Similarity View ({})'.format(pipeline_name, source.name)
             snapshot_desc = 'Target column is {}, K value is {}'.format(mRMR_params['target_column'], mRMR_params['K'])
-            source_name_stripped = source.name.lower().replace(' ', '').replace('_', '').replace('-', '').replace('.', '')
+            source_name_stripped = (source.name.lower().
+                                    replace(' ', '').replace('_', '').replace('-', '').replace('.', ''))
             snapshot_payload = {
                 'view': 'scatter',
                 'sc_h': 'imageSimilarity{}{}0'.format(source_name_stripped, pipeline_name_stripped),
