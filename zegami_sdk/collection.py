@@ -369,7 +369,8 @@ class Collection():
                 'view': 'scatter',
                 'sc_h': 'imageSimilarity{}{}0'.format(source_name_stripped, pipeline_name_stripped),
                 'sc_v': 'imageSimilarity{}{}1'.format(source_name_stripped, pipeline_name_stripped),
-                'source': source.name
+                'source': source.name,
+                'pan': 'TYPES_PANEL'
             }
             self.add_snapshot(snapshot_name, snapshot_desc, snapshot_payload)
 
