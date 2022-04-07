@@ -1289,3 +1289,8 @@ class Collection():
                 'associated with this collection'.format(source.name))
 
         return s
+    
+    def add_source(self, payload):
+        url = '{}/{}/project/{}/collections/{}/sources'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        self.client._auth_post(url, payload)
