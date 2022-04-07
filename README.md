@@ -7,7 +7,7 @@ Grab this repo, open the script, and load an instance of ZegamiClient into a var
 ```
 from zegami_sdk.client import ZegamiClient
 
-zc = ZegamiClient(username, login)
+zc = ZegamiClient(username=USERNAME, password=PASSWORD)
 ```
 
 ## Credentials
@@ -16,7 +16,6 @@ The client operates using a user token. By default, logging in once with a valid
 
 
 ## Example Usage
-### Get the metadata and images associated with every dog of the 'beagle' breed in a collection of dogs:
 
 ```
 zc = ZegamiClient()
@@ -60,6 +59,12 @@ You can get the metadata in a collection as a Pandas DataFrame using:
 rows = coll.rows
 ```
 
+This data can then be modified or augmentated and added back to the collection using:
+
+```
+coll.replace_data(modified_rows)
+```
+
 You can get the images of a collection using:
 
 ```
@@ -67,19 +72,20 @@ first_10_img_urls = coll.get_image_urls(list(range(10)))
 imgs = coll.download_image_batch(first_10_img_urls)
 ```
 
-If your collection supports the new multi-image-source functionality, you can see your available sources using:
+### Sources
+If a collection contains multiple image sources, these can be seen using:
 
 ```
 coll.show_sources()
 ```
 
-For source 2's (3rd in 0-indexed-list) images, you would use:
+Many operations require specifying which image source should be used. This can be specified by index or name for most functions.
 
 ```
-first_10_source3_img_urls = novo_col.get_image_urls(list(range(10)), source=2)`
+first_10_source2_img_urls = coll.get_image_urls(list(range(10)), source=2)
 
 # To see the first of these:
-coll.download_image(first_10_source3_img_urls[0])
+coll.download_image(first_10_source2_img_urls[0])
 ```
 
 ### Using with onprem zegami
@@ -110,7 +116,7 @@ ALLOW_INSECURE_SSL=true python myscript.py
 WARNING! You should not need to set this when using the SDK for cloud zegami
 
 # In Development
-This SDK is in active development, not all features are available yet. Creating/uploading to collections is not supported currently - check back soon!
+This SDK is in active development. Features are actively being developed according to user feedback. Please share your suggestions or fork this repository and feel free to raise a PR
 
 
 # Developer Conventions
@@ -122,8 +128,8 @@ MOST IMPORTANT - Zegami has concepts used internally in its data engine, like 'i
 ## Obvious
 Avoid ambiguous parameters. Use the best worded, lowest level parameters types for functions/methods. Give them obvious names. Any ambiguity or unobvious parameters MUST be described in detail in the docstring. Avoid parameters like 'target' or 'action', or describe them explicitly. If an instance is needed, describe how/where that instance should come from.
 
-## `assert`
-If you expect an RGB image, check that your input is an array, that its len(shape) == 3, that shape[2] == 3. Use a proper message if this is not the case.
+## Exceptions
+If you expect an RGB image, check that your input is an array, that its len(shape) == 3, that shape[2] == 3, and throw an exception to clearly feed back to the user what has wrong. The message should help the user to solve the problem for themselves.
 
 ## Minimal
 Do not ask for more information than is already obtainable. A source knows its parent collection, which knows how to get its own IDs and knows the client. A method never needs to reference a source, the owning collection, and the client all together. Moreover, these chains should have sensible assertions and checks built in, and potentially property/method-based shortcuts (with assertions).
