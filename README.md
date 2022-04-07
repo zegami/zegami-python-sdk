@@ -7,7 +7,7 @@ Grab this repo, open the script, and load an instance of ZegamiClient into a var
 ```
 from zegami_sdk.client import ZegamiClient
 
-zc = ZegamiClient(username, login)
+zc = ZegamiClient(username=USERNAME, password=PASSWORD)
 ```
 
 ## Credentials
@@ -82,10 +82,10 @@ coll.show_sources()
 Many operations require specifying which image source should be used. This can be specified by index or name for most functions.
 
 ```
-first_10_source3_img_urls = coll.get_image_urls(list(range(10)), source=2)
+first_10_source2_img_urls = coll.get_image_urls(list(range(10)), source=2)
 
 # To see the first of these:
-coll.download_image(first_10_source3_img_urls[0])
+coll.download_image(first_10_source2_img_urls[0])
 ```
 
 ### Using with onprem zegami
@@ -116,7 +116,7 @@ ALLOW_INSECURE_SSL=true python myscript.py
 WARNING! You should not need to set this when using the SDK for cloud zegami
 
 # In Development
-This SDK is in active development. Features are actively being developed according to user feedback. Please share your suggestions or fork this repository feel free to raise a PR
+This SDK is in active development. Features are actively being developed according to user feedback. Please share your suggestions or fork this repository and feel free to raise a PR
 
 
 # Developer Conventions
