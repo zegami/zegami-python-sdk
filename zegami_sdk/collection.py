@@ -1300,4 +1300,4 @@ class Collection():
             'name': source_name,
             'imageset_id': root_imageset_id
         }
-        self.client._auth_post(url, payload)
+        self.client._auth_post(url, json.dumps(payload))
