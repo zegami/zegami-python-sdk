@@ -1289,8 +1289,15 @@ class Collection():
                 'associated with this collection'.format(source.name))
 
         return s
-    
-    def add_source(self, payload):
+
+    def add_source(self, source_name, root_imageset_id):
+        """
+        Accepts source name and root imageset id to add a source to the collection.
+        """
         url = '{}/{}/project/{}/collections/{}/sources'.format(
             self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        payload = {
+            'name': source_name,
+            'imageset_id': root_imageset_id
+        }
         self.client._auth_post(url, payload)

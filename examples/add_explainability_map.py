@@ -42,8 +42,4 @@ resp = nodes.add_node(
 explainability_map_node = resp.get('imageset')
 
 # add a new source with root imageset as the explainability map node
-payload = {
-    'name': NEW_SOURCE_NAME,
-    'imageset_id': explainability_map_node
-}
-collection.add_source(payload)
+collection.add_source(NEW_SOURCE_NAME, explainability_map_node)
