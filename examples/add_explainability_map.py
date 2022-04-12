@@ -29,7 +29,7 @@ collection_group = [
 
 # Optional: Upload model to the workspace
 with open(MODEL_PATH, "rb") as data:
-    workspace.create_storage_item(MODEL_PATH, item_name=MODEL_NAME)
+    workspace.create_storage_item(data, item_name=MODEL_NAME)
 
 # create explainability map node
 resp = nodes.add_node(
