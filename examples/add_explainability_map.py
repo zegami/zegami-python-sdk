@@ -9,6 +9,8 @@ from zegami_sdk.client import ZegamiClient
 WORKSPACE_ID = ''
 COLLECTION_ID = ''
 NEW_SOURCE_NAME = ''
+MODEL_PATH = ''
+MODEL_NAME = ''
 
 zc = ZegamiClient("", "")
 
@@ -25,13 +27,19 @@ collection_group = [
     'collection_' + COLLECTION_ID
 ]
 
+# Optional: Upload model to the workspace
+with open(MODEL_PATH, "rb") as data:
+    workspace.create_storage_item(data, item_name=MODEL_NAME)
+
 # create explainability map node
 resp = nodes.add_node(
     zc,
     workspace,
     'explainability_map',
     {
-        "model_name": "feature_extractor.h5",
+        # "model_name": MODEL_NAME,
+        # "width": ,
+        # "height": ,
     },
     'imageset',
     imageset_parents=augment_imageset_id,
