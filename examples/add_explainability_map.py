@@ -37,14 +37,16 @@ resp = nodes.add_node(
     zc,
     workspace,
     'explainability_map',
-    {   
-        "file_name": MODEL_NAME, # Optional: Name of the model in workspace storage. This will overwrite the tensorflow model param.
+    {
+        "file_name": MODEL_NAME,  # Optional: Name of the model in workspace storage.
+        # This will overwrite the tensorflow model param.
         "model_name": 'Xception',  # Optional: Name of the tensorflow model. Default is ResNet50.
-        "width": 224, # Optional: Width value to pre process the image before inputting into the model.
-        "height": 224, # Optional: Height value to pre process the image before inputting into the model.
-        "last_conv_layer_name": '', # Optional: Name of the last convolutional layer.
-        "class_index": '', # Optional: Index of class to evaluate activation maps with respect to. If left blank, the top predicted class is used for each image.
-        "class_index": 0.5, # Optional: Blend weight for combining heatmap to image. Default is 0.4.
+        "width": 224,  # Optional: Width value to pre process the image before inputting into the model.
+        "height": 224,  # Optional: Height value to pre process the image before inputting into the model.
+        "last_conv_layer_name": '',  # Optional: Name of the last convolutional layer.
+        "class_index": '',  # Optional: Index of class to evaluate activation maps with respect to.
+        # If left blank, the top predicted class is used for each image.
+        "alpha": 0.5,  # Optional: Blend weight for combining heatmap to image. Default is 0.4.
     },
     'imageset',
     imageset_parents=augment_imageset_id,
