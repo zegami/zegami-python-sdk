@@ -27,7 +27,8 @@ collection_group = [
     'collection_' + COLLECTION_ID
 ]
 
-# Optional: Upload model to the workspace
+# Optional: Upload custom model to the workspace.
+# Only need to upload the same model once and all collections in workspace can access it.
 with open(MODEL_PATH, "rb") as data:
     workspace.create_storage_item(data, item_name=MODEL_NAME)
 
@@ -37,9 +38,15 @@ resp = nodes.add_node(
     workspace,
     'explainability_map',
     {
-        # "model_name": MODEL_NAME,
-        # "width": ,
-        # "height": ,
+        "file_name": MODEL_NAME,  # Optional: Name of the model in workspace storage.
+        # This will overwrite the tensorflow model param.
+        "model_name": 'Xception',  # Optional: Name of the tensorflow model. Default is ResNet50.
+        "width": 224,  # Optional: Width value to pre process the image before inputting into the model.
+        "height": 224,  # Optional: Height value to pre process the image before inputting into the model.
+        "last_conv_layer_name": '',  # Optional: Name of the last convolutional layer.
+        "class_index": '',  # Optional: Index of class to evaluate activation maps with respect to.
+        # If left blank, the top predicted class is used for each image.
+        "alpha": 0.5,  # Optional: Blend weight for combining heatmap to image. Default is 0.4.
     },
     'imageset',
     imageset_parents=augment_imageset_id,
