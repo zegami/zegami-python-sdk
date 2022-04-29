@@ -19,19 +19,20 @@ collection.add_feature_pipeline(
             'params': {
                 'target_column': 'weight',
                 'K': 20,
+                'option': 'regression'  # another option is classification
             },
         },
         {
             'action': 'cluster',
             'params': {
-                'algorithm_args': {
-                    'algorithm': 'umap',
-                    'n_components': 2,
-                    "n_neighbors": 15,
-                    "min_dist": 0.5,
-                    "spread": 2,
-                    "random_state": 123,
-                }
+                # 'algorithm_args': {
+                #     'algorithm': 'umap',
+                #     'n_components': 2,
+                #     "n_neighbors": 15,
+                #     "min_dist": 0.5,
+                #     "spread": 2,
+                #     "random_state": 123,
+                # }
             }
         }
     ],
