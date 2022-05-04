@@ -198,7 +198,7 @@ class UploadableSource():
         self._index = index
         self._source = source
 
-        if not self.source.name == self.name:
+        if not self.source.name == 'None' and not self.source.name == self.name:
             raise Exception(
                 'UploadableSource "{}" registered to Source "{}" when their names should match'
                 .format(self.name, self.source.name)
