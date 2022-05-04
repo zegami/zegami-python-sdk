@@ -129,7 +129,7 @@ class Collection():
         """On-construction sets source instances using of collection data."""
 
         if self.version < 2:
-            source_data = self._data
+            source_data = self._data.copy()
             source_data['name'] = 'None'
             self._sources = [Source(self, source_data)]
 
