@@ -1088,9 +1088,8 @@ class Collection():
             self.replace_data(new_rows)
 
         # validate and register uploadable sources against existing sources
-        for s in uploadable_sources:
-            for i, us in enumerate(uploadable_sources):
-                us._register_source(i, self.sources[i])
+        for i, us in enumerate(uploadable_sources):
+            us._register_source(i, self.sources[i])
 
         # upload
         for us in uploadable_sources:

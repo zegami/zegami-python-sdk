@@ -114,7 +114,7 @@ class UploadableSource():
         ".json"
     )
 
-    def __init__(self, name, image_dir, column_filename='Filename', recursive_search=True):
+    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True):
         """Used in conjunction with create_collection().
 
         An UploadableSource() points towards and manages the upload of local files, resulting in the
@@ -198,7 +198,7 @@ class UploadableSource():
         self._index = index
         self._source = source
 
-        if not self.source.name == self.name:
+        if not self.source.name == 'None' and not self.source.name == self.name:
             raise Exception(
                 'UploadableSource "{}" registered to Source "{}" when their names should match'
                 .format(self.name, self.source.name)
@@ -328,7 +328,7 @@ class UploadableSource():
 
     def _check_in_data(self, data):
         cols = list(data.columns)
-        if self.column_filename not in cols:
+        if self.column_filename != '__auto_join__' and self.column_filename not in cols:
             raise Exception('Source "{}" had the filename_column "{}" '
                             'which is not a column of the provided data:\n{}'
                             .format(self.name, self.column_filename, cols))
@@ -363,7 +363,7 @@ class UploadableSource():
 
 class UrlSource(UploadableSource):
 
-    def __init__(self, name, url_template, image_fetch_headers, column_filename='Filename'):
+    def __init__(self, name, url_template, image_fetch_headers, column_filename=None):
         """Used in conjunction with create_collection().
 
         A UrlSource() fetches the images from the url template given, resulting in the

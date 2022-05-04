@@ -166,7 +166,7 @@ class Workspace():
         post_data = {
             'name': name,
             'description': description,
-            'image_sources': [{'name': s.name} for s in uploadable_sources],
+            'image_sources': [{'name': s.name, 'dataset_column': s.column_filename} for s in uploadable_sources],
             **kwargs
         }
 
