@@ -450,7 +450,7 @@ class Collection():
                             'out_column_start_order',
                         ]
                         for param in unwanted_params:
-                            if param in cluster_params:
+                            if param in cluster_params.keys():
                                 cluster_params.pop(param)
                     if 'mRMR' in node['source']:
                         mRMR_params = node['source']['mRMR']
