@@ -237,6 +237,21 @@ class Collection():
         resp = self.client._auth_get(url)
         return resp
 
+    def duplicate(self, duplicate_name):
+        """
+        Creates a completely separate copy of the collection within the workspace
+        Processed blobs are reused but there is no ongoing link to the original
+        """
+        url = '{}/{}/project/{}/collections/duplicate'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id)
+        payload = {
+            "old_collection_id": self.id,
+            "new_collection_name": duplicate_name,
+        }
+        resp = self.client._auth_post(url, None, json=payload)
+        print('Duplicated collection. New collection id: ', resp['new_collection_id'])
+        return resp
+
     def row_index_to_imageset_index(self, row_idx, source=0) -> int:
         """
         Turn a row-space index into an imageset-space index. Typically used
