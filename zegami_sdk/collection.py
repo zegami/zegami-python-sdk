@@ -237,7 +237,7 @@ class Collection():
         resp = self.client._auth_get(url)
         return resp
 
-    def duplicate(self, duplicate_name):
+    def duplicate(self, duplicate_name=None):
         """
         Creates a completely separate copy of the collection within the workspace
         Processed blobs are reused but there is no ongoing link to the original
@@ -246,8 +246,10 @@ class Collection():
             self.client.HOME, self.client.API_0, self.workspace_id)
         payload = {
             "old_collection_id": self.id,
-            "new_collection_name": duplicate_name,
         }
+        if duplicate_name:
+            payload["new_collection_name"] = duplicate_name,
+
         resp = self.client._auth_post(url, None, json=payload)
         print('Duplicated collection. New collection id: ', resp['new_collection_id'])
         return resp
