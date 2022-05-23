@@ -248,9 +248,9 @@ class Collection():
             "old_collection_id": self.id,
         }
         if duplicate_name:
-            payload["new_collection_name"] = duplicate_name,
+            payload["new_collection_name"] = duplicate_name
 
-        resp = self.client._auth_post(url, None, json=payload)
+        resp = self.client._auth_post(url, json.dumps(payload))
         print('Duplicated collection. New collection id: ', resp['new_collection_id'])
         return resp
 
