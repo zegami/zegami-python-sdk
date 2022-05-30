@@ -5,7 +5,6 @@
 
 import time
 
-from zegami_sdk import nodes
 from zegami_sdk.client import ZegamiClient
 
 WORKSPACE_ID = ''
@@ -59,69 +58,22 @@ data = {
         "height": HEIGHT,
     }
 }
-new_coll.add_explainability_map_source(data)
+new_coll.add_explainability(data)
 
 # Add clustering
 print('Adding clustering to {}\n'.format(new_coll.name))
 
-scaled_imageset_id = source._data.get('scaled_imageset_id')
-join_dataset_id = source._data.get('imageset_dataset_join_id')
-
-collection_group_first_source = [
-    'source_' + source.name,
-    'collection_' + new_coll_id
-]
-
-resp = nodes.add_node(
-    zc,
-    workspace,
-    'custom_feature_extraction',
-    {
+clustering_data = {
+    'FEATURE_EXTRACTION_SOURCE': {
         "MODEL_NAME": model_blob_path,
         "greyscale": True,
         "width": WIDTH,
         "height": HEIGHT,
     },
-    'imageset',
-    imageset_parents=scaled_imageset_id,
-    name="custom feature extraction node",
-    node_group=collection_group_first_source,
-    processing_category='image_clustering'
-)
-custom_feature_extraction_node = resp.get('imageset')
-
-resp = nodes.add_node(
-    zc,
-    workspace,
-    'cluster',
-    {
+    'CLUSTERING_SOURCE': {
         'out_column_title_prefix': '{}_'.format(MODEL_NAME),
-    },
-    dataset_parents=custom_feature_extraction_node.get('id'),
-    name="{} custom feature extraction similarity".format(MODEL_NAME),
-    node_group=collection_group_first_source,
-    processing_category='image_clustering'
-)
-cluster_node = resp.get('dataset')
-
-resp = nodes.add_node(
-    zc,
-    workspace,
-    'mapping',
-    {},
-    dataset_parents=[cluster_node.get('id'), join_dataset_id],
-    name="{} custom feature extraction mapping".format(MODEL_NAME),
-    node_group=collection_group_first_source,
-    processing_category='image_clustering'
-)
-mapping_node = resp.get('dataset')
-
-output_dataset_id = new_coll._data.get('output_dataset_id')
-resp = nodes.add_parent(
-    zc,
-    workspace,
-    output_dataset_id,
-    mapping_node.get('id')
-)
+    }
+}
+new_coll.add_custom_clustering(clustering_data)
 
 print('Ended processing: {}\n'.format(MODEL_NAME))
