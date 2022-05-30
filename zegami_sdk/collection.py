@@ -488,6 +488,28 @@ class Collection():
 
         return feature_pipelines
 
+    def add_explainability_map_source(self, data):
+        """
+        Add an explainability map node and create a new source with the node.
+        """
+        collection_group_second_source = [
+            'source_' + data['SOURCE_NAME'],
+            'collection_' + self.id
+        ]
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'explainability_map',
+            data['SOURCE'],
+            'imageset',
+            imageset_parents=data['PARENT_IMAGESET_ID'],
+            name="{} explainability map node".format(data['SOURCE_NAME']),
+            node_group=collection_group_second_source,
+            processing_category='upload'
+        )
+        explainability_map_node = resp.get('imageset')
+        self.add_source(data['SOURCE_NAME'], explainability_map_node.get('id'))
+
     def get_rows_by_filter(self, filters):
         """
         Gets rows of metadata in a collection by a flexible filter.

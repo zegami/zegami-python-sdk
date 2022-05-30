@@ -47,27 +47,16 @@ source = new_coll.sources[0]
 print('Adding explainbility map to {}\n'.format(new_coll.name))
 
 augment_imageset_id = source._data.get('augment_imageset_id')
-collection_group_second_source = [
-    'source_' + MODEL_NAME,
-    'collection_' + new_coll_id
-]
-resp = nodes.add_node(
-    zc,
-    workspace,
-    'explainability_map',
-    {
+data = {
+    'SOURCE_NAME': MODEL_NAME,
+    'PARENT_IMAGESET_ID': augment_imageset_id,
+    'SOURCE': {
         "file_name": model_blob_path,
         "width": WIDTH,
         "height": HEIGHT,
-    },
-    'imageset',
-    imageset_parents=augment_imageset_id,
-    name="{} explainability map node".format(MODEL_NAME),
-    node_group=collection_group_second_source,
-    processing_category='upload'
-)
-explainability_map_node = resp.get('imageset')
-new_coll.add_source(MODEL_NAME, explainability_map_node.get('id'))
+    }
+}
+new_coll.add_explainability_map_source(data)
 
 # Add clustering
 print('Adding clustering to {}\n'.format(new_coll.name))
