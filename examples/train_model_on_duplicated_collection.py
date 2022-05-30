@@ -30,7 +30,6 @@ while True:
     if new_coll.status['status'] == 'completed':
         break
     time.sleep(60)
-source = new_coll.sources[0]
 
 # TODO: Training on the duplicated collection
 MODEL_PATH = ''
@@ -48,17 +47,15 @@ with open(MODEL_PATH, "rb") as data:
 # Add explainability map
 print('Adding explainbility map to {}\n'.format(new_coll.name))
 
-augment_imageset_id = source._data.get('augment_imageset_id')
 data = {
-    'SOURCE_NAME': MODEL_NAME,
-    'PARENT_IMAGESET_ID': augment_imageset_id,
+    'NEW_SOURCE_NAME': MODEL_NAME,
     'SOURCE': {
         "file_name": model_blob_path,
         "width": WIDTH,
         "height": HEIGHT,
     }
 }
-new_coll.add_explainability(data)
+new_coll.add_explainability(data, parent_source=0)
 
 # Add clustering
 print('Adding clustering to {}\n'.format(new_coll.name))
@@ -74,6 +71,6 @@ clustering_data = {
         'out_column_title_prefix': '{}_'.format(MODEL_NAME),
     }
 }
-new_coll.add_custom_clustering(clustering_data)
+new_coll.add_custom_clustering(clustering_data, source=0)
 
 print('Ended processing: {}\n'.format(MODEL_NAME))

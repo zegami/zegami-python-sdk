@@ -488,21 +488,23 @@ class Collection():
 
         return feature_pipelines
 
-    def add_explainability(self, data):
+    def add_explainability(self, data, parent_source=0):
         """
         Add an explainability map node and create a new source with the node.
         """
         collection_group_source = [
-            'source_' + data['SOURCE_NAME'],
+            'source_' + data['NEW_SOURCE_NAME'],
             'collection_' + self.id
         ]
+        parent_source = self._parse_source(parent_source)
+        augment_imageset_id = parent_source._data.get('augment_imageset_id')
         resp = add_node(
             self.client,
             self.workspace,
             'explainability_map',
-            data['SOURCE'],
+            data['EXPLAINABILITY_SOURCE'],
             'imageset',
-            imageset_parents=data['PARENT_IMAGESET_ID'],
+            imageset_parents=augment_imageset_id,
             name="{} explainability map node".format(data['SOURCE_NAME']),
             node_group=collection_group_source,
             processing_category='upload'
