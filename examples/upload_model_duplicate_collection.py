@@ -62,7 +62,7 @@ print('Adding clustering to {}\n'.format(new_coll.name))
 
 clustering_data = {
     'FEATURE_EXTRACTION_SOURCE': {
-        "MODEL_NAME": model_blob_path,
+        "model_name": model_blob_path,
         "greyscale": True,
         "width": WIDTH,
         "height": HEIGHT,
