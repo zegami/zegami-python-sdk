@@ -488,6 +488,87 @@ class Collection():
 
         return feature_pipelines
 
+    def add_explainability(self, data, parent_source=0):
+        """
+        Add an explainability map node and create a new source with the node.
+        """
+        collection_group_source = [
+            'source_' + data['NEW_SOURCE_NAME'],
+            'collection_' + self.id
+        ]
+        parent_source = self._parse_source(parent_source)
+        augment_imageset_id = parent_source._data.get('augment_imageset_id')
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'explainability_map',
+            data['EXPLAINABILITY_SOURCE'],
+            'imageset',
+            imageset_parents=augment_imageset_id,
+            name="{} explainability map node".format(data['SOURCE_NAME']),
+            node_group=collection_group_source,
+            processing_category='upload'
+        )
+        explainability_map_node = resp.get('imageset')
+        self.add_source(data['SOURCE_NAME'], explainability_map_node.get('id'))
+
+    def add_custom_clustering(self, data, source=0):
+        """
+        Add feature extraction and clustering given an custom model.
+        """
+        source = self._parse_source(source)
+        collection_group_source = [
+            'source_' + source.name,
+            'collection_' + self.id
+        ]
+        scaled_imageset_id = source._data.get('scaled_imageset_id')
+        join_dataset_id = source._imageset_dataset_join_id
+
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'custom_feature_extraction',
+            data['FEATURE_EXTRACTION_SOURCE'],
+            'imageset',
+            imageset_parents=scaled_imageset_id,
+            name="custom feature extraction node",
+            node_group=collection_group_source,
+            processing_category='image_clustering'
+        )
+        custom_feature_extraction_node = resp.get('imageset')
+
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'cluster',
+            data['CLUSTERING_SOURCE'],
+            dataset_parents=custom_feature_extraction_node.get('id'),
+            name="custom feature extraction similarity",
+            node_group=collection_group_source,
+            processing_category='image_clustering'
+        )
+        cluster_node = resp.get('dataset')
+
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'mapping',
+            {},
+            dataset_parents=[cluster_node.get('id'), join_dataset_id],
+            name="custom feature extraction mapping",
+            node_group=collection_group_source,
+            processing_category='image_clustering'
+        )
+        mapping_node = resp.get('dataset')
+
+        output_dataset_id = self._data.get('output_dataset_id')
+        resp = add_parent(
+            self.client,
+            self.workspace,
+            output_dataset_id,
+            mapping_node.get('id')
+        )
+
     def get_rows_by_filter(self, filters):
         """
         Gets rows of metadata in a collection by a flexible filter.
