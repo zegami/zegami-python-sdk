@@ -49,7 +49,7 @@ print('Adding explainbility map to {}\n'.format(new_coll.name))
 
 data = {
     'NEW_SOURCE_NAME': MODEL_NAME,
-    'SOURCE': {
+    'EXPLAINABILITY_SOURCE': {
         "file_name": model_blob_path,
         "width": WIDTH,
         "height": HEIGHT,

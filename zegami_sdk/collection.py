@@ -505,12 +505,12 @@ class Collection():
             data['EXPLAINABILITY_SOURCE'],
             'imageset',
             imageset_parents=augment_imageset_id,
-            name="{} explainability map node".format(data['SOURCE_NAME']),
+            name="{} explainability map node".format(data['NEW_SOURCE_NAME']),
             node_group=collection_group_source,
             processing_category='upload'
         )
         explainability_map_node = resp.get('imageset')
-        self.add_source(data['SOURCE_NAME'], explainability_map_node.get('id'))
+        self.add_source(data['NEW_SOURCE_NAME'], explainability_map_node.get('id'))
 
     def add_custom_clustering(self, data, source=0):
         """
