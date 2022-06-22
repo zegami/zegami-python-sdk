@@ -145,6 +145,20 @@ class ZegamiClient():
         self._user_info = self._auth_get(url)
         self._workspaces = [Workspace(self, w) for w in self._user_info['projects']]
 
+    def get_collection_from_url(self, url):
+        """
+        Generates a Collection() instance using the URL of the collection.
+        """
+
+        try:
+            wid, cid = url.split('collections/', 1)[-1].split('?', 1)[0].split('-')
+        except ValueError:
+            raise ValueError(
+                'Unable to parse URL. Please use the conventional '
+                '.get_workspace_by_ -> .get_collection_by_ methods.')
+
+        return self.get_workspace_by_id(wid).get_collection_by_id(cid)
+
 
 class _ZegamiStagingClient(ZegamiClient):
 

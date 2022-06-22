@@ -6,6 +6,7 @@
 import base64
 import io
 import os
+from enum import Enum
 
 import numpy as np
 from PIL import Image
@@ -430,3 +431,15 @@ class AnnotationPolygon(_Annotation):
         uploadable['class_id'] = int(class_id)
 
         return uploadable
+
+
+class AnnotationTypes(Enum):
+    """
+    Enumeration of annotation types, with values consisting of the string name
+    of the type, followed by the Annotation-derived class (if there is one).
+    """
+
+    DATA = ('data', None)
+    MASK = (AnnotationMask.TYPE, AnnotationMask)
+    POLYGON = (AnnotationPolygon.TYPE, AnnotationPolygon)
+    BOUNDINGBOX = (AnnotationBB.TYPE, AnnotationBB)

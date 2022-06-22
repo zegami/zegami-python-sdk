@@ -37,7 +37,9 @@ setup(
     author_email='help@zegami.com',
     license='Apache 2.0',
     packages=[
-        'zegami_sdk'
+        'zegami_sdk',
+	'zegami_sdk.experiments',
+	'zegami_sdk.experiments.model_loaders'
     ],
     include_package_data=True,
     install_requires=[
