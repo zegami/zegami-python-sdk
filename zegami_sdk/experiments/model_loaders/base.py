@@ -10,10 +10,11 @@ class _BaseModelLoader():
         - Validity testing
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         # Set post-construction by owning Experiment
         self._experiment = None
+        self._loaded_model = None
 
     def get_model_filename(self) -> str:
         raise NotImplementedError()
@@ -25,6 +26,15 @@ class _BaseModelLoader():
         raise NotImplementedError()
 
     def load_model_inference(self, **kwargs):
+        raise NotImplementedError()
+
+    def load_train_data(self, **kwargs):
+        raise NotImplementedError()
+
+    def load_val_data(self, **kwargs):
+        raise NotImplementedError()
+
+    def train(self, **kwargs):
         raise NotImplementedError()
 
     def infer(self, **kwargs):
@@ -62,3 +72,11 @@ class _BaseModelLoader():
 
         return '{}{}'.format(
             self.experiment.model_dir, self.get_model_filename())
+
+    @property
+    def loaded_model():
+        pass
+
+    @loaded_model.getter
+    def loaded_model(self):
+        return self._loaded_model

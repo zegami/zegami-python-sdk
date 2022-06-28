@@ -27,11 +27,13 @@ class Expermient():
             ModelLoaders.ENUM_TYPE_YOU_NEED
         - After construction, create a CollectionConfig() instance and
             use experiment.assign_collection_config(your_config).
+        - misc_options is used to feed global information relevant to each
+            experiment down the chain. See model subclasses for more info.
 
     To check that all is ready, query experiment.is_ready
     """
 
-    def __init__(self, directory, name, collection, model_loader_enum, collection_config):
+    def __init__(self, directory, name, collection, model_loader_enum, collection_config, misc_options={}):
 
         # Format to '/' trailing directory
         directory = os.path.abspath(str(directory))\
@@ -56,6 +58,7 @@ class Expermient():
         self._collection = collection
         self._model_loader = model_loader
         self._collection_config = None
+        self.misc_options = misc_options
 
     def assign_collection_config(self, collection_config):
         """
