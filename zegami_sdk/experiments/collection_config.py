@@ -30,8 +30,7 @@ class CollectionConfig():
             val_tag='val',
             anno_type=AnnotationTypes.MASK,
             class_columns=None,
-            **kwargs
-            ):
+            **kwargs):
 
         if not isinstance(collection, Collection):
             raise TypeError(
@@ -159,6 +158,22 @@ class CollectionConfig():
     @anno_type.getter
     def anno_type(self) -> str:
         return self._anno_type_and_class[0]
+
+    @property
+    def train_tag():
+        pass
+
+    @train_tag.getter
+    def train_tag(self) -> str:
+        return self._train_tag
+
+    @property
+    def val_tag():
+        pass
+
+    @val_tag.getter
+    def val_tag(self) -> str:
+        return self._val_tag
 
     @property
     def train_rows():

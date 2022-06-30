@@ -31,7 +31,7 @@ class MrcnnModelLoader(_BaseModelLoader):
 
     def __init__(self, **kwargs):
 
-        super.__init__()
+        super().__init__()
 
     def get_model_filename(self) -> str:
         return 'mrcnn_model.h5'
@@ -97,9 +97,12 @@ class MrcnnModelLoader(_BaseModelLoader):
 
     def load_model_inference(self, **kwargs):
 
-        weights_fp = os.path.join(
-            self.experiment.model_dir, self.get_model_filename()
-        )
+        if self.experiment.inference_model_path is not None:
+            weights_fp = self.experiment.inference_model_path
+        else:
+            weights_fp = os.path.join(
+                self.experiment.model_dir, self.get_model_filename()
+            )
 
         if not os.path.exists(weights_fp):
             raise FileNotFoundError('"{}" weights file does not exist'.format(weights_fp))
@@ -124,8 +127,8 @@ class MrcnnModelLoader(_BaseModelLoader):
             self.experiment.collection,
             self.experiment.collection_config.val_tag,
             allow_caching=True,
-            image_cache_limit=msc['CACHE_SIZE'],
-            min_mask_area=msc['MIN_MASK_AREA']
+            image_cache_limit=msc.get('CACHE_SIZE', 10e+9),
+            min_mask_area=msc.get('MIN_MASK_AREA', 0)
         )
 
         self._dataset_train.prepare()
@@ -140,8 +143,8 @@ class MrcnnModelLoader(_BaseModelLoader):
             self.experiment.collection,
             self.experiment.collection_config.val_tag,
             allow_caching=True,
-            image_cache_limit=msc['CACHE_SIZE'],
-            min_mask_area=msc['MIN_MASK_AREA']
+            image_cache_limit=msc.get('CACHE_SIZE', 10e+9),
+            min_mask_area=msc.get('MIN_MASK_AREA', 0)
         )
 
         print('Validation data prepared')
@@ -175,7 +178,7 @@ class MrcnnModelLoader(_BaseModelLoader):
         if num_classes == 0:
             raise ValueError(
                 'Collection has no classes set')
-        class_names = [c.name for c in self.experiment.collection.classes]
+        class_names = [c['name'] for c in self.experiment.collection.classes]
 
         # Obtain misc options
         msc = self.experiment.misc_options
@@ -187,9 +190,6 @@ class MrcnnModelLoader(_BaseModelLoader):
 
         steps_train = int(np.floor(len(self._dataset_train) / batch_size))
         steps_val = int(np.floor(len(self._dataset_val) / batch_size))
-
-        self._cfg.STEPS_PER_EPOCH = steps_train
-        self._cfg.VALIDATION_STEPS = steps_val
 
         class TrainConfig(MrcnnConfig):
 

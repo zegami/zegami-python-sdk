@@ -2,10 +2,9 @@
 import os
 
 from zegami_sdk.collection import Collection
-from zegami_sdk.experiments.collection_config import CollectionConfig
 
 
-class Expermient():
+class Experiment():
     """
     Description:
 
@@ -33,7 +32,8 @@ class Expermient():
     To check that all is ready, query experiment.is_ready
     """
 
-    def __init__(self, directory, name, collection, model_loader_enum, collection_config, misc_options={}):
+    def __init__(self, collection, model_loader_enum,
+                 inference_model_path=None, directory='./', name='experiment', misc_options={}):
 
         # Format to '/' trailing directory
         directory = os.path.abspath(str(directory))\
@@ -57,7 +57,7 @@ class Expermient():
         self._root = directory
         self._collection = collection
         self._model_loader = model_loader
-        self._collection_config = None
+        self.inference_model_path = inference_model_path
         self.misc_options = misc_options
 
     def assign_collection_config(self, collection_config):
@@ -102,7 +102,6 @@ class Expermient():
         # TODO - Add more testing
 
         return True
-
 
     @property
     def name():
