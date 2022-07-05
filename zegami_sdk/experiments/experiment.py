@@ -39,15 +39,15 @@ class Experiment():
         directory = os.path.abspath(str(directory))\
             .replace('\\', '/').strip('/') + '/' + str(name) + '/'
 
-        if os.path.exists(directory):
-            raise FileExistsError(
-                'The directory "{}" already exists.'.format(directory))
+        if inference_model_path is None:
+            if os.path.exists(directory):
+                raise FileExistsError(
+                    'The directory "{}" already exists.'.format(directory))
+            os.makedirs(directory)
 
         if not isinstance(collection, Collection):
             raise TypeError(
                 'collection: Must be a zegami_sdk.collection.Collection')
-
-        os.makedirs(directory)
 
         # Construct and init model loader
         model_loader = model_loader_enum.value()
