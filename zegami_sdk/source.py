@@ -114,12 +114,19 @@ class UploadableSource():
         ".json"
     )
 
-    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True):
-        """Used in conjunction with create_collection().
-
-        An UploadableSource() points towards and manages the upload of local files, resulting in the
-        generation of a true Source() in the collection.
+    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True, filename_filter=[]):
         """
+        Used in conjunction with create_collection().
+
+        An UploadableSource() points towards and manages the upload of local
+        files, resulting in the generation of a true Source() in the
+        collection.
+
+        To limit to an allowed specific list of filenames, provide
+        'filename_filter'. This filter will check against
+        os.path.basename(filepath).
+        """
+
         self.name = name
         self.image_dir = image_dir
         self.column_filename = column_filename
@@ -135,10 +142,17 @@ class UploadableSource():
             raise TypeError('image_dir "{}" is not a directory'.format(self.image_dir))
 
         # Find all files matching the allowed mime-types
-        self.filepaths = sum(
+        fps = sum(
             [glob('{}/**/*{}'.format(image_dir, ext), recursive=recursive_search)
                 for ext in self.IMAGE_MIMES.keys()], [])
 
+        # Potentially limit paths based on filename_filter
+        if filename_filter:
+            if type(filename_filter) != list:
+                raise TypeError('filename_filter should be a list')
+            fps = [fp for fp in fps if os.path.basename(fp) in filename_filter]
+
+        self.filepaths = fps
         self.filenames = [os.path.basename(fp) for fp in self.filepaths]
 
         print('UploadableSource "{}" found {} images in "{}"'.format(self.name, len(self), image_dir))
