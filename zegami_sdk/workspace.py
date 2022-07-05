@@ -146,6 +146,7 @@ class Workspace():
     # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
     def _create_empty_collection(self, name, uploadable_sources, description='', **kwargs):
         """Create an empty collection, ready for images and data."""
+
         defaults = {
             'version': 2,
             'dynamic': False,
@@ -161,6 +162,10 @@ class Workspace():
         for k in reserved:
             if k in kwargs.keys():
                 del kwargs[k]
+
+        # Display actual kwargs used
+        for k, v in kwargs.items():
+            print('- Creation argument used - {} : {}'.format(k, v))
 
         # Data to generate the collection, including sparse sources with no data
         post_data = {
@@ -212,6 +217,18 @@ class Workspace():
 
         - description:
             A description for the collection.
+
+        - kwargs (advanced, default signified in []):
+
+            - (bool) enable_clustering: [True]/False
+                Automatic image clustering. For massive collections this
+                process can cause memory issues, and clustering may not
+                even be wanted/necessary for the collection.
+
+            - (bool) use_wsi: True/[False]
+                Whole-slide-image format. If using WSI images, please use this
+                argument.
+
         """
         # Parse for a list of UploadableSources
         print('- Parsing uploadable source list')
