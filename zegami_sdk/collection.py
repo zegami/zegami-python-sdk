@@ -244,7 +244,7 @@ class Collection():
         This feature is still WIP.
         """
         url = '{}/{}/project/{}/collections/{}'.format(
-            'http://127.0.0.1:5000/', self.client.API_0, self.workspace_id, self.id)
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
         collection_body = self.client._auth_get(url)['collection']
 
         if folder_name is None:
