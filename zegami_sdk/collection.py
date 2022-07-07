@@ -237,6 +237,35 @@ class Collection():
         resp = self.client._auth_get(url)
         return resp
 
+    def _move_to_folder(self, folder_name):
+        """
+        Move current collection into a folder. When folder_name is None, the collection will
+        not belong to any folder.
+        This feature is still WIP.
+        """
+        url = '{}/{}/project/{}/collections/{}'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        collection_body = self.client._auth_get(url)['collection']
+
+        if folder_name is None:
+            if 'folder' in collection_body:
+                del collection_body['folder']
+            if 'folder' in self._data:
+                del self._data['folder']
+        else:
+            collection_body['folder'] = folder_name
+            self._data['folder'] = folder_name
+
+        if 'projectId' in collection_body:
+            del collection_body['projectId']
+        if 'published' in collection_body:
+            for record in collection_body['published']:
+                del record['status']
+
+        self.client._auth_put(
+            url, body=None,
+            return_response=True, json=collection_body)
+
     def duplicate(self, duplicate_name=None):
         """
         Creates a completely separate copy of the collection within the workspace
