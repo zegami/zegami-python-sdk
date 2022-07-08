@@ -360,6 +360,7 @@ class Collection():
                     }
                 ]
 
+        The results from get_feature_pipelines() can be used to passed in here to recreate a pipeline.
         """
         # get the source
         source = self._parse_source(source)
