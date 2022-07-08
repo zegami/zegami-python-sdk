@@ -338,6 +338,29 @@ class Collection():
     def add_feature_pipeline(self, pipeline_name, steps, source=0, generate_snapshot=False):
         """
         Add mRMR, cluster, mapping nodes and update the merge node for the source.
+
+        pipeline_name: self defined name used to derive column ids/titles
+        source: index or name of the collection source to use
+        generate_snapshot: whether to generate a snapshot for the new clustering results
+        steps: list of nodes which would feed one into the other in sequence
+            - example:
+                [
+                    {
+                        'action': 'mRMR',
+                        'params': {
+                            'target_column': 'weight',
+                            'K': 20,
+                            'option': 'regression'  # another option is classification
+                        },
+                    },
+                    {
+                        'action': 'cluster',
+                        'params': {}
+                        }
+                    }
+                ]
+
+        The results from get_feature_pipelines() can be used to passed in here to recreate a pipeline.
         """
         # get the source
         source = self._parse_source(source)
