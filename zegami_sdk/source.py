@@ -86,6 +86,21 @@ class Source():
             raise KeyError('Key "{}" not found in Source _data'.format(key))
         return self._data[key]
 
+    @property
+    def image_details():
+        pass
+
+    @image_details.getter
+    def image_details(self):
+
+        collection = self.collection
+        c = collection.client
+
+        ims_url = '{}/{}/project/{}/nodes/{}/images'.format(
+            c.HOME, c.API_1, collection.workspace_id, self.imageset_id)
+        ims = c._auth_get(ims_url)
+
+        return ims
 
 class UploadableSource():
 
@@ -114,7 +129,7 @@ class UploadableSource():
         ".json"
     )
 
-    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True, filename_filter=[]):
+    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True, filename_filter=[], additional_mimes=None):
         """
         Used in conjunction with create_collection().
 
@@ -135,22 +150,26 @@ class UploadableSource():
         self._source = None
         self._index = None
 
+
+        UploadableSource.IMAGE_MIMES = {**UploadableSource.IMAGE_MIMES, **additional_mimes}
+
         # Check the directory exists
         if not os.path.exists(image_dir):
             raise FileNotFoundError('image_dir "{}" does not exist'.format(self.image_dir))
         if not os.path.isdir(image_dir):
             raise TypeError('image_dir "{}" is not a directory'.format(self.image_dir))
 
-        # Find all files matching the allowed mime-types
-        fps = sum(
-            [glob('{}/**/*{}'.format(image_dir, ext), recursive=recursive_search)
-                for ext in self.IMAGE_MIMES.keys()], [])
-
-        # Potentially limit paths based on filename_filter
+        # Potentially limit paths based on filename_filter.
         if filename_filter:
             if type(filename_filter) != list:
                 raise TypeError('filename_filter should be a list')
-            fps = [fp for fp in fps if os.path.basename(fp) in filename_filter]
+            fps = [os.path.join(image_dir, fp) for fp in filename_filter if os.path.exists(os.path.join(image_dir, fp))]
+
+        else:
+            # Find all files matching the allowed mime-types
+            fps = sum(
+                [glob('{}/**/*{}'.format(image_dir, ext), recursive=recursive_search)
+                 for ext in self.IMAGE_MIMES.keys()], [])
 
         self.filepaths = fps
         self.filenames = [os.path.basename(fp) for fp in self.filepaths]
@@ -268,6 +287,10 @@ class UploadableSource():
         # Tell the server how many uploads are expected for this source
         url = '{}/{}/project/{}/imagesets/{}/extend'.format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         delta = len(self)
+        # If there are no new uploads, ignore.
+        if delta == 0:
+            print('No new data to be uploaded.')
+            return
         resp = c._auth_post(url, body=None, json={'delta': delta})
         new_size = resp['new_size']
         start = new_size - delta
@@ -369,6 +392,8 @@ class UploadableSource():
     @classmethod
     def _get_mime_type(cls, path) -> str:
         """Gets the mime_type of the path. Raises an error if not a valid image mime_type."""
+        if '.' not in path:
+            return cls.IMAGE_MIMES['']
         ext = os.path.splitext(path)[-1]
         if ext in cls.IMAGE_MIMES.keys():
             return cls.IMAGE_MIMES[ext]
