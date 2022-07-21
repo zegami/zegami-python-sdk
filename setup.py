@@ -38,7 +38,7 @@ setup(
     license='Apache 2.0',
     packages=[
         'zegami_sdk',
-	'zegami_sdk.trained_models',
+        'zegami_sdk.trained_models',
         'zegami_sdk.experiments',
         'zegami_sdk.experiments.model_loaders'
     ],

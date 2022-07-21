@@ -48,7 +48,10 @@ class MrcnnTrainedModel(TrainedModel):
 
         print('\n[Loading Config]')
 
-        fp = os.path.join(self.save_path, 'inference_config.py')
+        if self.kwargs.get('config_path'):
+            fp = os.path.join(self.kwargs.get('config_path'), 'inference_config.py')
+        else:
+            fp = os.path.join(self.save_path, 'inference_config.py')
         if not os.path.exists(fp):
             raise FileNotFoundError(
                 'Expected to find configuration file at "{}"'.format(fp))
@@ -64,9 +67,7 @@ class MrcnnTrainedModel(TrainedModel):
 
         # Readout
         print('Inference Config:')
-        for k in [_ for _ in dir(self.config) if not _.startswith('__')
-                  and not callable(getattr(self.config, _))]:
-
+        for k in [_ for _ in dir(self.config) if not _.startswith('__') and not callable(getattr(self.config, _))]:
             print('{:<30} {}'.format(k, getattr(self.config, k)))
 
     def load_model(self):
@@ -77,19 +78,22 @@ class MrcnnTrainedModel(TrainedModel):
 
         print('\n[Loading Model]')
 
-        # Ensure weights
-        regex = '{}**/*.h5'.format(self.save_path)
-        candidates = [str(g) for g in glob(regex, recursive=True)]
-        if len(candidates) == 0:
-            raise FileNotFoundError(
-                'No weights files found in "{}"'.format(self.save_path))
-        elif len(candidates) > 1:
-            wfp = candidates[-1]
-            print('Multiple weights found: "{}"'.format(candidates))
-            print('Using weights: "{}"'.format(candidates[-1]))
+        if not self.kwargs.get('is_file'):
+            # Ensure weights
+            regex = '{}**/*.h5'.format(self.save_path)
+            candidates = [str(g) for g in glob(regex, recursive=True)]
+            if len(candidates) == 0:
+                raise FileNotFoundError(
+                    'No weights files found in "{}"'.format(self.save_path))
+            elif len(candidates) > 1:
+                wfp = candidates[-1]
+                print('Multiple weights found: "{}"'.format(candidates))
+                print('Using weights: "{}"'.format(candidates[-1]))
+            else:
+                wfp = candidates[0]
+                print('Using weights: "{}"'.format(os.path.basename(wfp)))
         else:
-            wfp = candidates[0]
-            print('Using weights: "{}"'.format(os.path.basename(wfp)))
+            wfp = self.save_path
 
         # Potentially use mrcnn exclusion (used with fresh coco weights)
         mrcnn_exclusion = []
@@ -142,10 +146,10 @@ class MrcnnTrainedModel(TrainedModel):
 
         # Define the return output
         ret = {
-            'bool_masks':   masks,
-            'scores':       scores,
-            'class_ids':    ids,
-            'class_names':  names
+            'bool_masks': masks,
+            'scores': scores,
+            'class_ids': ids,
+            'class_names': names
         }
 
         # Include a visualization if specified

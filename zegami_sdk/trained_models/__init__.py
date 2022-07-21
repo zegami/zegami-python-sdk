@@ -31,7 +31,8 @@ class TrainedModel():
             raise ValueError(
                 'TrainedModel type "{}" not supported'.format(self.TYPE))
 
-        save_path = save_path.replace('\\', '/').strip('/')
+        if not kwargs.get('is_file'):
+            save_path = save_path.replace('\\', '/').strip('/')
         if not os.path.exists(save_path):
             raise FileNotFoundError(
                 'Could not find model save_path: "{}"'.format(save_path))
