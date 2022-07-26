@@ -102,6 +102,7 @@ class Source():
 
         return ims
 
+
 class UploadableSource():
 
     IMAGE_MIMES = {
@@ -129,7 +130,8 @@ class UploadableSource():
         ".json"
     )
 
-    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True, filename_filter=[], additional_mimes=None):
+    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True, filename_filter=[],
+                 additional_mimes=None):
         """
         Used in conjunction with create_collection().
 
@@ -149,7 +151,6 @@ class UploadableSource():
         # Set externally once a blank collection has been made
         self._source = None
         self._index = None
-
 
         UploadableSource.IMAGE_MIMES = {**UploadableSource.IMAGE_MIMES, **additional_mimes}
 
