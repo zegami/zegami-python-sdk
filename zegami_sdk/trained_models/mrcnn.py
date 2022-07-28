@@ -37,7 +37,10 @@ class MrcnnTrainedModel(TrainedModel):
         super().__init__(save_path, **kwargs)
 
         # Load data
-        self.load_config()
+        if self.kwargs.get('config'):
+            self.config = self.kwargs.get('config')
+        else:
+            self.load_config()
         self.load_model()
 
     def load_config(self):
@@ -48,10 +51,7 @@ class MrcnnTrainedModel(TrainedModel):
 
         print('\n[Loading Config]')
 
-        if self.kwargs.get('config_path'):
-            fp = os.path.join(self.kwargs.get('config_path'), 'inference_config.py')
-        else:
-            fp = os.path.join(self.save_path, 'inference_config.py')
+        fp = os.path.join(self.save_path, 'inference_config.py')
         if not os.path.exists(fp):
             raise FileNotFoundError(
                 'Expected to find configuration file at "{}"'.format(fp))
