@@ -9,7 +9,7 @@ import pathlib
 from setuptools import setup
 
 # Update version here when you want to increment the version in PyPi
-sdk_version = '0.4.7'
+sdk_version = '0.4.8'
 
 # If no ZEGAMI_SDK_VERSION set use the version
 try:
