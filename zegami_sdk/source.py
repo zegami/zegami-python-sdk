@@ -86,6 +86,22 @@ class Source():
             raise KeyError('Key "{}" not found in Source _data'.format(key))
         return self._data[key]
 
+    @property
+    def image_details():
+        pass
+
+    @image_details.getter
+    def image_details(self):
+
+        collection = self.collection
+        c = collection.client
+
+        ims_url = '{}/{}/project/{}/nodes/{}/images'.format(
+            c.HOME, c.API_1, collection.workspace_id, self.imageset_id)
+        ims = c._auth_get(ims_url)
+
+        return ims
+
 
 class UploadableSource():
 
@@ -114,12 +130,24 @@ class UploadableSource():
         ".json"
     )
 
-    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True):
-        """Used in conjunction with create_collection().
-
-        An UploadableSource() points towards and manages the upload of local files, resulting in the
-        generation of a true Source() in the collection.
+    def __init__(self, name, image_dir, column_filename='__auto_join__', recursive_search=True, filename_filter=[],
+                 additional_mimes={}):
         """
+        Used in conjunction with create_collection().
+
+        An UploadableSource() points towards and manages the upload of local
+        files, resulting in the generation of a true Source() in the
+        collection.
+
+        To limit to an allowed specific list of filenames, provide
+        'filename_filter'. This filter will check against
+        os.path.basename(filepath).
+
+        Common mime types are inferred from the file extension,
+        but a dict of additional mime type mappings can be provided eg to
+        cater for files with no extension.
+        """
+
         self.name = name
         self.image_dir = image_dir
         self.column_filename = column_filename
@@ -128,17 +156,27 @@ class UploadableSource():
         self._source = None
         self._index = None
 
+        self.image_mimes = {**UploadableSource.IMAGE_MIMES, **additional_mimes}
+
         # Check the directory exists
         if not os.path.exists(image_dir):
             raise FileNotFoundError('image_dir "{}" does not exist'.format(self.image_dir))
         if not os.path.isdir(image_dir):
             raise TypeError('image_dir "{}" is not a directory'.format(self.image_dir))
 
-        # Find all files matching the allowed mime-types
-        self.filepaths = sum(
-            [glob('{}/**/*{}'.format(image_dir, ext), recursive=recursive_search)
-                for ext in self.IMAGE_MIMES.keys()], [])
+        # Potentially limit paths based on filename_filter.
+        if filename_filter:
+            if type(filename_filter) != list:
+                raise TypeError('filename_filter should be a list')
+            fps = [os.path.join(image_dir, fp) for fp in filename_filter if os.path.exists(os.path.join(image_dir, fp))]
 
+        else:
+            # Find all files matching the allowed mime-types
+            fps = sum(
+                [glob('{}/**/*{}'.format(image_dir, ext), recursive=recursive_search)
+                 for ext in self.IMAGE_MIMES.keys()], [])
+
+        self.filepaths = fps
         self.filenames = [os.path.basename(fp) for fp in self.filepaths]
 
         print('UploadableSource "{}" found {} images in "{}"'.format(self.name, len(self), image_dir))
@@ -254,6 +292,10 @@ class UploadableSource():
         # Tell the server how many uploads are expected for this source
         url = '{}/{}/project/{}/imagesets/{}/extend'.format(c.HOME, c.API_0, collection.workspace_id, self.imageset_id)
         delta = len(self)
+        # If there are no new uploads, ignore.
+        if delta == 0:
+            print('No new data to be uploaded.')
+            return
         resp = c._auth_post(url, body=None, json={'delta': delta})
         new_size = resp['new_size']
         start = new_size - delta
@@ -352,13 +394,14 @@ class UploadableSource():
 
         return uploadable_sources
 
-    @classmethod
-    def _get_mime_type(cls, path) -> str:
+    def _get_mime_type(self, path) -> str:
         """Gets the mime_type of the path. Raises an error if not a valid image mime_type."""
+        if '.' not in path:
+            return self.image_mimes['']
         ext = os.path.splitext(path)[-1]
-        if ext in cls.IMAGE_MIMES.keys():
-            return cls.IMAGE_MIMES[ext]
-        raise TypeError('"{}" is not a supported image mime_type ({})'.format(path, cls.IMAGE_MIMES))
+        if ext in self.image_mimes.keys():
+            return self.image_mimes[ext]
+        raise TypeError('"{}" is not a supported image mime_type ({})'.format(path, self.image_mimes))
 
 
 class UrlSource(UploadableSource):
