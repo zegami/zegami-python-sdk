@@ -143,9 +143,26 @@ class Workspace():
         resp = c._auth_delete(url)
         return resp.ok
 
-    # Version should be used once https://github.com/zegami/zegami-cloud/pull/1103/ is merged
-    def _create_empty_collection(self, name, uploadable_sources, description='', **kwargs):
-        """Create an empty collection, ready for images and data."""
+    def _create_empty_collection(self, name, source_names_and_filename_columns, description='', **kwargs):
+        """
+        Create an empty collection, ready for images and data.
+
+        - source_names_and_filename_columns:
+            A dictionary of { name: filename_column } for incoming sources.
+            filename columns indicate where to find image filenames
+            within uploaded data. For non-data collections, the default
+            uploadable source name is used '__auto_join__', but this could
+            be 'Filename' if that is the name of your image filename column.
+
+            Example: {
+                'Regular': 'Filename',
+                'X-Ray': 'XRay Filename',
+                'Heatmap': 'Heatmap Filename'
+            }
+
+            Sources may share the same filename column (different folders may
+            contain identical filenames for different sources).
+        """
 
         defaults = {
             'version': 2,
@@ -171,7 +188,8 @@ class Workspace():
         post_data = {
             'name': name,
             'description': description,
-            'image_sources': [{'name': s.name, 'dataset_column': s.column_filename} for s in uploadable_sources],
+            'image_sources': [{'name': name, 'dataset_column': col} for name, col
+                              in source_names_and_filename_columns.items()],
             **kwargs
         }
 
@@ -261,10 +279,16 @@ class Workspace():
             for s in uploadable_sources:
                 s._check_in_data(data)
 
+        # Creating an empty collection requires these parameters
+        source_names_and_filename_cols = {n: c for n, c in zip(
+            [us.name for us in uploadable_sources],
+            [us.column_filename for us in uploadable_sources]
+        )}
+
         # Create an empty collection
         print('- Creating blank collection "{}"'.format(name))
         blank_resp = self._create_empty_collection(
-            name, uploadable_sources, description=description, **kwargs)
+            name, source_names_and_filename_cols, description=description, **kwargs)
         blank_id = blank_resp['id']
         blank = self.get_collection_by_id(blank_id)
 
