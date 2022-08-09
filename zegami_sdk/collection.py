@@ -237,6 +237,52 @@ class Collection():
         resp = self.client._auth_get(url)
         return resp
 
+    def _move_to_folder(self, folder_name):
+        """
+        Move current collection into a folder. When folder_name is None, the collection will
+        not belong to any folder.
+        This feature is still WIP.
+        """
+        url = '{}/{}/project/{}/collections/{}'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id, self.id)
+        collection_body = self.client._auth_get(url)['collection']
+
+        if folder_name is None:
+            if 'folder' in collection_body:
+                del collection_body['folder']
+            if 'folder' in self._data:
+                del self._data['folder']
+        else:
+            collection_body['folder'] = folder_name
+            self._data['folder'] = folder_name
+
+        if 'projectId' in collection_body:
+            del collection_body['projectId']
+        if 'published' in collection_body:
+            for record in collection_body['published']:
+                del record['status']
+
+        self.client._auth_put(
+            url, body=None,
+            return_response=True, json=collection_body)
+
+    def duplicate(self, duplicate_name=None):
+        """
+        Creates a completely separate copy of the collection within the workspace
+        Processed blobs are reused but there is no ongoing link to the original
+        """
+        url = '{}/{}/project/{}/collections/duplicate'.format(
+            self.client.HOME, self.client.API_0, self.workspace_id)
+        payload = {
+            "old_collection_id": self.id,
+        }
+        if duplicate_name:
+            payload["new_collection_name"] = duplicate_name
+
+        resp = self.client._auth_post(url, json.dumps(payload))
+        print('Duplicated collection. New collection id: ', resp['new_collection_id'])
+        return resp
+
     def row_index_to_imageset_index(self, row_idx, source=0) -> int:
         """
         Turn a row-space index into an imageset-space index. Typically used
@@ -292,6 +338,29 @@ class Collection():
     def add_feature_pipeline(self, pipeline_name, steps, source=0, generate_snapshot=False):
         """
         Add mRMR, cluster, mapping nodes and update the merge node for the source.
+
+        pipeline_name: self defined name used to derive column ids/titles
+        source: index or name of the collection source to use
+        generate_snapshot: whether to generate a snapshot for the new clustering results
+        steps: list of nodes which would feed one into the other in sequence
+            - example:
+                [
+                    {
+                        'action': 'mRMR',
+                        'params': {
+                            'target_column': 'weight',
+                            'K': 20,
+                            'option': 'regression'  # another option is classification
+                        },
+                    },
+                    {
+                        'action': 'cluster',
+                        'params': {}
+                        }
+                    }
+                ]
+
+        The results from get_feature_pipelines() can be used to passed in here to recreate a pipeline.
         """
         # get the source
         source = self._parse_source(source)
@@ -470,6 +539,87 @@ class Collection():
                 })
 
         return feature_pipelines
+
+    def add_explainability(self, data, parent_source=0):
+        """
+        Add an explainability map node and create a new source with the node.
+        """
+        collection_group_source = [
+            'source_' + data['NEW_SOURCE_NAME'],
+            'collection_' + self.id
+        ]
+        parent_source = self._parse_source(parent_source)
+        augment_imageset_id = parent_source._data.get('augment_imageset_id')
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'explainability_map',
+            data['EXPLAINABILITY_SOURCE'],
+            'imageset',
+            imageset_parents=augment_imageset_id,
+            name="{} explainability map node".format(data['NEW_SOURCE_NAME']),
+            node_group=collection_group_source,
+            processing_category='upload'
+        )
+        explainability_map_node = resp.get('imageset')
+        self.add_source(data['NEW_SOURCE_NAME'], explainability_map_node.get('id'))
+
+    def add_custom_clustering(self, data, source=0):
+        """
+        Add feature extraction and clustering given an custom model.
+        """
+        source = self._parse_source(source)
+        collection_group_source = [
+            'source_' + source.name,
+            'collection_' + self.id
+        ]
+        scaled_imageset_id = source._data.get('scaled_imageset_id')
+        join_dataset_id = source._imageset_dataset_join_id
+
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'custom_feature_extraction',
+            data['FEATURE_EXTRACTION_SOURCE'],
+            'imageset',
+            imageset_parents=scaled_imageset_id,
+            name="custom feature extraction node",
+            node_group=collection_group_source,
+            processing_category='image_clustering'
+        )
+        custom_feature_extraction_node = resp.get('imageset')
+
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'cluster',
+            data['CLUSTERING_SOURCE'],
+            dataset_parents=custom_feature_extraction_node.get('id'),
+            name="custom feature extraction similarity",
+            node_group=collection_group_source,
+            processing_category='image_clustering'
+        )
+        cluster_node = resp.get('dataset')
+
+        resp = add_node(
+            self.client,
+            self.workspace,
+            'mapping',
+            {},
+            dataset_parents=[cluster_node.get('id'), join_dataset_id],
+            name="custom feature extraction mapping",
+            node_group=collection_group_source,
+            processing_category='image_clustering'
+        )
+        mapping_node = resp.get('dataset')
+
+        output_dataset_id = self._data.get('output_dataset_id')
+        resp = add_parent(
+            self.client,
+            self.workspace,
+            output_dataset_id,
+            mapping_node.get('id')
+        )
 
     def get_rows_by_filter(self, filters):
         """
