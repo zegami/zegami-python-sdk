@@ -331,7 +331,7 @@ class UploadableSource():
 
         # Obtain blob storage information
         blob_storage_urls, id_set = c._obtain_signed_blob_storage_urls(
-            coll.workspace_id, id_count=len(paths))
+            coll.workspace_id, id_count=len(paths), blob_path="imagesets/{}".format(self.imageset_id))
 
         # Check that numbers of values are still matching
         if not len(paths) == len(blob_storage_urls):
